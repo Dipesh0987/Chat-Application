@@ -45,7 +45,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Poll for chat list updates every 5 seconds (real-time updates)
     chatListInterval = setInterval(loadChats, 5000);
+
+    // Heartbeat: update online status every 30 seconds
+    updateOnlineStatus();
+    setInterval(updateOnlineStatus, 30000);
 });
+
+async function updateOnlineStatus() {
+    try {
+        await fetch('../api/auth.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'action=update_online_status&status=online'
+        });
+    } catch (error) {
+        console.error('Heartbeat failed:', error);
+    }
+}
 
 async function loadChats() {
     const response = await fetch('../api/users.php?action=get_chats');
@@ -70,8 +86,8 @@ async function loadChats() {
                 : '';
 
             const onlineStatus = chat.is_online ?
-                '<span class="online-status online" title="Online"></span>' :
-                '<span class="online-status offline" title="Offline"></span>';
+                `<span class="online-status online" title="${chat.status_text}"></span>` :
+                `<span class="online-status offline" title="${chat.status_text}"></span>`;
 
             // Truncate long messages intelligently
             let displayMessage = chat.last_message || 'No messages yet';
@@ -96,8 +112,11 @@ async function loadChats() {
             }
 
             chatItem.innerHTML = `
-                <strong>${chat.username} ${onlineStatus}</strong>
+                <div class="chat-item-header">
+                    <strong>${chat.username} ${onlineStatus}</strong>
+                </div>
                 <p>${displayMessage}</p>
+                ${!chat.is_online && chat.status_text !== 'Offline' ? `<div class="last-seen-text">${chat.status_text}</div>` : ''}
                 ${unreadBadge}
             `;
             chatItem.addEventListener('click', () => openChat(chat.user_id, chat.username));
@@ -121,11 +140,14 @@ async function loadFriends() {
             friendItem.className = 'friend-item';
 
             const onlineStatus = friend.is_online ?
-                '<span class="online-status online" title="Online"></span>' :
-                '<span class="online-status offline" title="Offline"></span>';
+                `<span class="online-status online" title="${friend.status_text}"></span>` :
+                `<span class="online-status offline" title="${friend.status_text}"></span>`;
 
             friendItem.innerHTML = `
-                <span>${friend.username} ${onlineStatus}</span>
+                <div class="friend-info">
+                    <span>${friend.username} ${onlineStatus}</span>
+                    ${!friend.is_online && friend.status_text !== 'Offline' ? `<div class="last-seen-text">${friend.status_text}</div>` : ''}
+                </div>
                 <button class="message-btn" onclick="openChat(${friend.id}, '${friend.username}')">Message</button>
             `;
             friendList.appendChild(friendItem);
@@ -193,7 +215,20 @@ async function updateHeaderStatus(userId) {
         const statusDot = document.getElementById('headerOnlineStatus');
         if (statusDot) {
             statusDot.className = data.user.is_online ? 'online-status online' : 'online-status offline';
-            statusDot.title = data.user.is_online ? 'Online' : 'Offline';
+            statusDot.title = data.user.status_text;
+
+            // Optionally show status text in header
+            let statusTextElem = document.getElementById('headerStatusText');
+            if (!statusTextElem) {
+                statusTextElem = document.createElement('small');
+                statusTextElem.id = 'headerStatusText';
+                statusTextElem.style.display = 'block';
+                statusTextElem.style.fontSize = '0.75rem';
+                statusTextElem.style.color = '#666';
+                statusTextElem.style.fontWeight = 'normal';
+                document.querySelector('.chat-header-info').appendChild(statusTextElem);
+            }
+            statusTextElem.textContent = data.user.status_text;
         }
     }
 }

@@ -1355,3 +1355,9 @@ body {
         display: block;
     }
 }
+
+.last-seen-text {
+    font-size: 0.7rem;
+    color: #888;
+    margin-top: 2px;
+}

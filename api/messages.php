@@ -36,6 +36,12 @@ if ($action === 'send') {
         error_log("Vulgar message detected. User: $user_id, Warnings: {$warning_result['warnings']}, Banned: " . ($warning_result['banned'] ? 'yes' : 'no'));
 
         if ($warning_result['banned']) {
+            // Set user offline in DB before destroying session
+            $set_offline = "UPDATE users SET is_online = FALSE, last_seen = NOW() WHERE id = :user_id";
+            $stmt_offline = $db->prepare($set_offline);
+            $stmt_offline->bindParam(':user_id', $user_id);
+            $stmt_offline->execute();
+
             // Destroy session to log out user
             session_destroy();
 

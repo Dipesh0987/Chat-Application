@@ -49,6 +49,13 @@ if ($action === 'login') {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['is_admin'] = false;
+
+            // Set user online immediately
+            $update_status = "UPDATE users SET is_online = TRUE, last_seen = NOW() WHERE id = :user_id";
+            $stmt_status = $db->prepare($update_status);
+            $stmt_status->bindParam(':user_id', $user['id']);
+            $stmt_status->execute();
+
             echo json_encode(['success' => true, 'is_admin' => false]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Invalid credentials']);
@@ -147,10 +154,11 @@ if ($action === 'update_online_status') {
         $database = new Database();
         $db = $database->getConnection();
 
+        $is_online = ($status === 'online') ? 1 : 0;
         $query = "UPDATE users SET is_online = :is_online, last_seen = NOW() WHERE id = :user_id";
         $stmt = $db->prepare($query);
-        $stmt->bindParam(':is_online', $is_online);
-        $stmt->bindParam(':user_id', $user_id);
+        $stmt->bindParam(':is_online', $is_online, PDO::PARAM_INT);
+        $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
         $stmt->execute();
 
         if ($is_online) {

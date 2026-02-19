@@ -155,10 +155,25 @@ body {
     padding: 15px;
     border-bottom: 1px solid #f0f0f0;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .chat-item:hover {
     background: #f5f5f5;
+}
+
+.chat-item.has-unread {
+    background: #e8f4ff;
+    border-left: 3px solid #0084ff;
+}
+
+.chat-item.has-unread:hover {
+    background: #d6ebff;
+}
+
+.chat-item.has-unread strong {
+    color: #0084ff;
+    font-weight: 600;
 }
 
 .friend-item {

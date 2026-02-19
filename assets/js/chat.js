@@ -1,6 +1,7 @@
 let currentChatUser = null;
 let messageInterval = null;
 let notificationInterval = null;
+let chatListInterval = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     loadChats();
@@ -39,6 +40,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Poll for notifications every 10 seconds
     notificationInterval = setInterval(loadNotifications, 10000);
+    
+    // Poll for chat list updates every 5 seconds (real-time updates)
+    chatListInterval = setInterval(loadChats, 5000);
 });
 
 async function loadChats() {
@@ -53,6 +57,11 @@ async function loadChats() {
             const chatItem = document.createElement('div');
             chatItem.className = 'chat-item';
             chatItem.style.position = 'relative';
+            
+            // Highlight if there are unread messages
+            if (chat.unread_count > 0) {
+                chatItem.classList.add('has-unread');
+            }
             
             const unreadBadge = chat.unread_count > 0 
                 ? `<span class="unread-badge">${chat.unread_count}</span>` 

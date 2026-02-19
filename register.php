@@ -19,15 +19,17 @@ if (isset($_SESSION['user_id'])) {
             <h2>Register</h2>
             <div id="message"></div>
             <form id="registerForm">
-                <input type="text" name="username" placeholder="Username" required>
+                <input type="text" id="username" name="username" placeholder="Username" required minlength="3">
+                <small id="usernameStatus" style="display:block;margin-top:-10px;margin-bottom:10px;"></small>
                 <input type="email" name="email" placeholder="Email" required>
-                <input type="password" name="password" placeholder="Password" required>
+                <input type="password" name="password" placeholder="Password" required minlength="6">
                 <input type="password" name="confirm_password" placeholder="Confirm Password" required>
                 <button type="submit">Register</button>
             </form>
             <p>Already have an account? <a href="index.php">Login here</a></p>
         </div>
     </div>
+    <script src="assets/js/dialog.js"></script>
     <script src="assets/js/auth.js"></script>
 </body>
 </html>

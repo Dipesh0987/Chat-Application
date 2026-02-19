@@ -52,13 +52,18 @@ async function loadChats() {
         data.chats.forEach(chat => {
             const chatItem = document.createElement('div');
             chatItem.className = 'chat-item';
+            chatItem.style.position = 'relative';
             
             const unreadBadge = chat.unread_count > 0 
                 ? `<span class="unread-badge">${chat.unread_count}</span>` 
                 : '';
             
+            const onlineStatus = chat.is_online ? 
+                '<span class="online-status online" title="Online"></span>' : 
+                '<span class="online-status offline" title="Offline"></span>';
+            
             chatItem.innerHTML = `
-                <strong>${chat.username}</strong>
+                <strong>${chat.username} ${onlineStatus}</strong>
                 <p>${chat.last_message || 'No messages yet'}</p>
                 ${unreadBadge}
             `;
@@ -81,8 +86,13 @@ async function loadFriends() {
         data.friends.forEach(friend => {
             const friendItem = document.createElement('div');
             friendItem.className = 'friend-item';
+            
+            const onlineStatus = friend.is_online ? 
+                '<span class="online-status online" title="Online"></span>' : 
+                '<span class="online-status offline" title="Offline"></span>';
+            
             friendItem.innerHTML = `
-                <span>${friend.username}</span>
+                <span>${friend.username} ${onlineStatus}</span>
                 <button class="message-btn" onclick="openChat(${friend.id}, '${friend.username}')">Message</button>
             `;
             friendList.appendChild(friendItem);
@@ -117,23 +127,52 @@ async function loadMessages() {
             const isSent = msg.sender_id != currentChatUser;
             msgDiv.className = isSent ? 'message sent' : 'message received';
             
+            let content = '';
+            
+            // Handle different message types
+            if (msg.message_type === 'image') {
+                content = `
+                    <div class="message-file">
+                        <img src="../${msg.file_path}" alt="${msg.file_name}" onclick="window.open('../${msg.file_path}', '_blank')" style="max-width: 250px; max-height: 250px; cursor: pointer; border-radius: 8px;">
+                        ${msg.message !== '[image]' ? `<p>${msg.message}</p>` : ''}
+                    </div>
+                `;
+            } else if (msg.message_type === 'video') {
+                content = `
+                    <div class="message-file">
+                        <video controls style="max-width: 250px; border-radius: 8px;">
+                            <source src="../${msg.file_path}" type="video/mp4">
+                        </video>
+                        ${msg.message !== '[video]' ? `<p>${msg.message}</p>` : ''}
+                    </div>
+                `;
+            } else if (msg.message_type === 'document') {
+                content = `
+                    <div class="message-file">
+                        <div style="font-size: 40px;">📄</div>
+                        <p><strong>${msg.file_name}</strong></p>
+                        <button class="download-btn" onclick="window.open('../${msg.file_path}', '_blank')" style="padding: 5px 10px; background: #0084ff; color: white; border: none; border-radius: 4px; cursor: pointer;">Download</button>
+                        ${msg.message !== '[document]' ? `<p>${msg.message}</p>` : ''}
+                    </div>
+                `;
+            } else {
+                content = `<p>${msg.message}</p>`;
+            }
+            
             // Add status ticks for sent messages
             let statusIcon = '';
             if (isSent) {
                 if (msg.is_read) {
-                    // Read - double blue tick
                     statusIcon = '<span class="status-tick read">✓✓</span>';
                 } else if (msg.is_delivered) {
-                    // Delivered - double grey tick
                     statusIcon = '<span class="status-tick delivered">✓✓</span>';
                 } else {
-                    // Sent - single grey tick
                     statusIcon = '<span class="status-tick sent">✓</span>';
                 }
             }
             
             msgDiv.innerHTML = `
-                <p>${msg.message}</p>
+                ${content}
                 <span class="time">${new Date(msg.created_at).toLocaleTimeString()} ${statusIcon}</span>
             `;
             container.appendChild(msgDiv);
@@ -146,7 +185,42 @@ async function sendMessage() {
     const input = document.getElementById('messageInput');
     const message = input.value.trim();
     
-    if (!message || !currentChatUser) return;
+    if (!currentChatUser) return;
+    
+    // If file is selected, upload it
+    if (selectedFile) {
+        const formData = new FormData();
+        formData.append('action', 'upload_file');
+        formData.append('receiver_id', currentChatUser);
+        formData.append('file', selectedFile);
+        formData.append('caption', message);
+        
+        try {
+            const response = await fetch('../api/upload.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                dialog.success('File sent successfully!');
+                input.value = '';
+                removeFile();
+                loadMessages();
+                loadChats();
+            } else {
+                dialog.error(data.message || 'Failed to send file');
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            dialog.error('Failed to upload file. Please try again.');
+        }
+        return;
+    }
+    
+    // Otherwise send text message
+    if (!message) return;
     
     const formData = new FormData();
     formData.append('action', 'send');
@@ -165,16 +239,15 @@ async function sendMessage() {
         loadMessages();
         loadChats();
     } else {
-        // Handle warnings and bans
+        // Handle warnings and bans with dialog boxes
         if (data.banned) {
-            alert(data.message);
-            // Logout user
-            logout();
+            dialog.error(data.message, 'Account Banned');
+            setTimeout(() => logout(), 2000);
         } else if (data.warning) {
-            alert(data.message);
-            loadNotifications(); // Refresh notifications
+            dialog.warning(data.message, 'Warning Issued');
+            loadNotifications();
         } else {
-            alert('Error: ' + data.message);
+            dialog.error(data.message || 'Failed to send message');
         }
     }
 }
@@ -619,6 +692,9 @@ function closeModal() {
 }
 
 async function logout() {
+    // Update online status to offline
+    updateOnlineStatus('offline');
+    
     const formData = new FormData();
     formData.append('action', 'logout');
     
@@ -629,3 +705,138 @@ async function logout() {
     
     window.location.href = '../index.php';
 }
+
+
+// ============================================
+// NEW FEATURES: File Upload, Emoji, Online Status
+// ============================================
+
+// File upload handling
+let selectedFile = null;
+
+// Initialize new features
+document.addEventListener('DOMContentLoaded', function() {
+    // Attachment button
+    if (document.getElementById('attachmentBtn')) {
+        document.getElementById('attachmentBtn').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+    }
+    
+    // File input change
+    if (document.getElementById('fileInput')) {
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                showFilePreview(file);
+            }
+        });
+    }
+    
+    // Emoji button
+    if (document.getElementById('emojiBtn')) {
+        document.getElementById('emojiBtn').addEventListener('click', toggleEmojiPicker);
+    }
+    
+    // Close emoji picker when clicking outside
+    document.addEventListener('click', (e) => {
+        const picker = document.getElementById('emojiPicker');
+        const btn = document.getElementById('emojiBtn');
+        if (picker && !picker.contains(e.target) && e.target !== btn) {
+            picker.classList.add('hidden');
+        }
+    });
+    
+    // Update online status
+    updateOnlineStatus('online');
+    
+    // Keep alive - update status every 30 seconds
+    setInterval(() => {
+        updateOnlineStatus('online');
+    }, 30000);
+    
+    // Set offline when page unloads
+    window.addEventListener('beforeunload', () => {
+        updateOnlineStatus('offline');
+    });
+});
+
+// Show file preview
+function showFilePreview(file) {
+    const preview = document.getElementById('filePreview');
+    const uploadArea = document.getElementById('fileUploadArea');
+    
+    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+    
+    if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            preview.innerHTML = `
+                <img src="${e.target.result}" alt="Preview" style="max-width: 60px; max-height: 60px; border-radius: 4px;">
+                <div class="file-info">
+                    <div class="file-name">${file.name}</div>
+                    <div class="file-size">${fileSize} MB</div>
+                </div>
+            `;
+        };
+        reader.readAsDataURL(file);
+    } else {
+        const icon = file.type.startsWith('video/') ? '🎥' : '📄';
+        preview.innerHTML = `
+            <div style="font-size: 40px;">${icon}</div>
+            <div class="file-info">
+                <div class="file-name">${file.name}</div>
+                <div class="file-size">${fileSize} MB</div>
+            </div>
+        `;
+    }
+    
+    uploadArea.classList.remove('hidden');
+}
+
+// Remove selected file
+function removeFile() {
+    selectedFile = null;
+    document.getElementById('fileUploadArea').classList.add('hidden');
+    document.getElementById('fileInput').value = '';
+}
+
+// Toggle emoji picker
+function toggleEmojiPicker() {
+    const picker = document.getElementById('emojiPicker');
+    picker.classList.toggle('hidden');
+    
+    if (!picker.classList.contains('hidden')) {
+        const emojis = ['😀','😂','😍','😊','😎','😢','😡','👍','👎','❤️','🎉','🔥','⭐','✅','❌','💯','🙏','👏','💪','🤔','😴','🤗','😱','🤩','😇'];
+        const grid = document.getElementById('emojiGrid');
+        grid.innerHTML = '';
+        
+        emojis.forEach(emoji => {
+            const item = document.createElement('div');
+            item.className = 'emoji-item';
+            item.textContent = emoji;
+            item.onclick = () => {
+                const input = document.getElementById('messageInput');
+                input.value += emoji;
+                input.focus();
+                picker.classList.add('hidden');
+            };
+            grid.appendChild(item);
+        });
+    }
+}
+
+// Update online status
+function updateOnlineStatus(status) {
+    const formData = new FormData();
+    formData.append('action', 'update_online_status');
+    formData.append('status', status);
+    
+    fetch('../api/auth.php', {
+        method: 'POST',
+        body: formData
+    }).catch(err => console.error('Failed to update status:', err));
+}
+
+console.log('✅ New features loaded: File Upload, Emoji Picker, Online Status, Dialog Boxes');

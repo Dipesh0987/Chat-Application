@@ -30,9 +30,11 @@ if ($action === 'search') {
 if ($action === 'get_friends') {
     $user_id = $_SESSION['user_id'];
     
-    $query = "SELECT u.id, u.username, f.status FROM friends f 
+    $query = "SELECT u.id, u.username, u.is_online, u.last_seen, f.status 
+              FROM friends f 
               JOIN users u ON (f.friend_id = u.id) 
-              WHERE f.user_id = :user_id AND f.status = 'accepted'";
+              WHERE f.user_id = :user_id AND f.status = 'accepted'
+              ORDER BY u.is_online DESC, u.last_seen DESC";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':user_id', $user_id);
     $stmt->execute();
@@ -148,6 +150,8 @@ if ($action === 'get_chats') {
                 ELSE m.sender_id 
               END as user_id,
               u.username,
+              u.is_online,
+              u.last_seen,
               (SELECT message FROM messages 
                WHERE (sender_id = :user_id2 AND receiver_id = user_id) 
                   OR (sender_id = user_id AND receiver_id = :user_id3)

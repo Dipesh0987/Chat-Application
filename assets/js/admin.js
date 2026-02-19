@@ -16,6 +16,7 @@ async function loadUsers() {
         table.innerHTML = `
             <thead>
                 <tr>
+                    <th>Profile</th>
                     <th>ID</th>
                     <th>Username</th>
                     <th>Email</th>
@@ -31,8 +32,13 @@ async function loadUsers() {
         const tbody = document.getElementById('userTableBody');
         data.users.forEach(user => {
             const status = user.is_banned ? `Banned until ${user.ban_until}` : 'Active';
+            const profileImg = user.profile_image 
+                ? `../${user.profile_image}` 
+                : '../assets/images/default-avatar.svg';
+            
             const row = document.createElement('tr');
             row.innerHTML = `
+                <td><img src="${profileImg}" alt="Profile" class="admin-profile-img"></td>
                 <td>${user.id}</td>
                 <td>${user.username}</td>
                 <td>${user.email}</td>

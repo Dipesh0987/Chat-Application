@@ -156,4 +156,105 @@ if ($action === 'logout') {
     session_destroy();
     echo json_encode(['success' => true]);
 }
+
+if ($action === 'update_username') {
+    $username = trim($_POST['username'] ?? '');
+    
+    if (empty($username)) {
+        echo json_encode(['success' => false, 'message' => 'Username cannot be empty']);
+        exit();
+    }
+    
+    // Check if username already exists
+    $check = "SELECT id FROM users WHERE username = :username AND id != :user_id";
+    $stmt_check = $db->prepare($check);
+    $stmt_check->bindParam(':username', $username);
+    $stmt_check->bindParam(':user_id', $user_id);
+    $stmt_check->execute();
+    
+    if ($stmt_check->rowCount() > 0) {
+        echo json_encode(['success' => false, 'message' => 'Username already taken']);
+        exit();
+    }
+    
+    $query = "UPDATE users SET username = :username WHERE id = :user_id";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':username', $username);
+    $stmt->bindParam(':user_id', $user_id);
+    
+    if ($stmt->execute()) {
+        $_SESSION['username'] = $username;
+        echo json_encode(['success' => true, 'message' => 'Username updated']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to update username']);
+    }
+}
+
+if ($action === 'update_email') {
+    $email = trim($_POST['email'] ?? '');
+    
+    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo json_encode(['success' => false, 'message' => 'Invalid email address']);
+        exit();
+    }
+    
+    // Check if email already exists
+    $check = "SELECT id FROM users WHERE email = :email AND id != :user_id";
+    $stmt_check = $db->prepare($check);
+    $stmt_check->bindParam(':email', $email);
+    $stmt_check->bindParam(':user_id', $user_id);
+    $stmt_check->execute();
+    
+    if ($stmt_check->rowCount() > 0) {
+        echo json_encode(['success' => false, 'message' => 'Email already in use']);
+        exit();
+    }
+    
+    $query = "UPDATE users SET email = :email WHERE id = :user_id";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':email', $email);
+    $stmt->bindParam(':user_id', $user_id);
+    
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true, 'message' => 'Email updated']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to update email']);
+    }
+}
+
+if ($action === 'update_password') {
+    $current_password = $_POST['current_password'] ?? '';
+    $new_password = $_POST['new_password'] ?? '';
+    
+    if (empty($current_password) || empty($new_password)) {
+        echo json_encode(['success' => false, 'message' => 'All fields are required']);
+        exit();
+    }
+    
+    // Verify current password
+    $query = "SELECT password FROM users WHERE id = :user_id";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':user_id', $user_id);
+    $stmt->execute();
+    
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!password_verify($current_password, $user['password'])) {
+        echo json_encode(['success' => false, 'message' => 'Current password is incorrect']);
+        exit();
+    }
+    
+    // Update password
+    $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+    $query = "UPDATE users SET password = :password WHERE id = :user_id";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':password', $hashed_password);
+    $stmt->bindParam(':user_id', $user_id);
+    
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true, 'message' => 'Password updated']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to update password']);
+    }
+}
 ?>

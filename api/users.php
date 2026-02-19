@@ -151,13 +151,15 @@ if ($action === 'get_chats') {
               (SELECT message FROM messages 
                WHERE (sender_id = :user_id2 AND receiver_id = user_id) 
                   OR (sender_id = user_id AND receiver_id = :user_id3)
-               ORDER BY created_at DESC LIMIT 1) as last_message
+               ORDER BY created_at DESC LIMIT 1) as last_message,
+              (SELECT COUNT(*) FROM messages 
+               WHERE sender_id = user_id AND receiver_id = :user_id4 AND is_read = FALSE) as unread_count
               FROM messages m
               JOIN users u ON u.id = CASE 
-                WHEN m.sender_id = :user_id4 THEN m.receiver_id 
+                WHEN m.sender_id = :user_id5 THEN m.receiver_id 
                 ELSE m.sender_id 
               END
-              WHERE m.sender_id = :user_id5 OR m.receiver_id = :user_id6
+              WHERE m.sender_id = :user_id6 OR m.receiver_id = :user_id7
               ORDER BY m.created_at DESC";
     
     $stmt = $db->prepare($query);
@@ -167,6 +169,7 @@ if ($action === 'get_chats') {
     $stmt->bindParam(':user_id4', $user_id);
     $stmt->bindParam(':user_id5', $user_id);
     $stmt->bindParam(':user_id6', $user_id);
+    $stmt->bindParam(':user_id7', $user_id);
     $stmt->execute();
     
     echo json_encode(['success' => true, 'chats' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);

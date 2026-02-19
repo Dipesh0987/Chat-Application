@@ -47,6 +47,13 @@ if ($action === 'send') {
 if ($action === 'get') {
     $other_user_id = $_GET['user_id'] ?? 0;
     
+    // Mark messages as read
+    $mark_read = "UPDATE messages SET is_read = TRUE WHERE sender_id = :sender_id AND receiver_id = :receiver_id AND is_read = FALSE";
+    $stmt_read = $db->prepare($mark_read);
+    $stmt_read->bindParam(':sender_id', $other_user_id);
+    $stmt_read->bindParam(':receiver_id', $user_id);
+    $stmt_read->execute();
+    
     $query = "SELECT m.*, u.username as sender_name 
               FROM messages m 
               JOIN users u ON m.sender_id = u.id

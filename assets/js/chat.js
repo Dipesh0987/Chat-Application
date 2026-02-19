@@ -52,9 +52,15 @@ async function loadChats() {
         data.chats.forEach(chat => {
             const chatItem = document.createElement('div');
             chatItem.className = 'chat-item';
+            
+            const unreadBadge = chat.unread_count > 0 
+                ? `<span class="unread-badge">${chat.unread_count}</span>` 
+                : '';
+            
             chatItem.innerHTML = `
                 <strong>${chat.username}</strong>
                 <p>${chat.last_message || 'No messages yet'}</p>
+                ${unreadBadge}
             `;
             chatItem.addEventListener('click', () => openChat(chat.user_id, chat.username));
             chatList.appendChild(chatItem);
@@ -314,6 +320,8 @@ async function showNotificationsModal() {
                 message = `${notif.from_username} accepted your friend request`;
             } else if (notif.type === 'message') {
                 message = `New message from ${notif.from_username}`;
+            } else if (notif.type === 'warning') {
+                message = notif.message || `You received a warning from ${notif.from_username}`;
             }
             
             notifDiv.innerHTML = `
@@ -363,6 +371,23 @@ function showSettingsModal() {
                 <button id="uploadBtn" class="btn-primary">Upload</button>
             </div>
             <div class="setting-item">
+                <label>Username</label>
+                <input type="text" id="editUsername" placeholder="New username">
+                <button id="updateUsernameBtn" class="btn-primary">Update Username</button>
+            </div>
+            <div class="setting-item">
+                <label>Email</label>
+                <input type="email" id="editEmail" placeholder="New email">
+                <button id="updateEmailBtn" class="btn-primary">Update Email</button>
+            </div>
+            <div class="setting-item">
+                <label>Change Password</label>
+                <input type="password" id="currentPassword" placeholder="Current password">
+                <input type="password" id="newPassword" placeholder="New password">
+                <input type="password" id="confirmPassword" placeholder="Confirm new password">
+                <button id="updatePasswordBtn" class="btn-primary">Update Password</button>
+            </div>
+            <div class="setting-item">
                 <button class="btn-danger" id="deleteAccountBtn">Delete Account</button>
             </div>
             <div class="setting-item">
@@ -374,6 +399,9 @@ function showSettingsModal() {
     
     // Add event listeners after modal is created
     document.getElementById('uploadBtn').addEventListener('click', uploadProfileImage);
+    document.getElementById('updateUsernameBtn').addEventListener('click', updateUsername);
+    document.getElementById('updateEmailBtn').addEventListener('click', updateEmail);
+    document.getElementById('updatePasswordBtn').addEventListener('click', updatePassword);
     document.getElementById('deleteAccountBtn').addEventListener('click', showDeleteAccountConfirm);
     document.getElementById('logoutBtnSettings').addEventListener('click', logout);
 }
@@ -432,6 +460,95 @@ async function uploadProfileImage() {
     } catch (error) {
         console.error('Upload error:', error);
         alert('Failed to upload image. Error: ' + error.message);
+    }
+}
+
+async function updateUsername() {
+    const username = document.getElementById('editUsername').value.trim();
+    if (!username) {
+        alert('Please enter a username');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('action', 'update_username');
+    formData.append('username', username);
+    
+    const response = await fetch('../api/settings.php', {
+        method: 'POST',
+        body: formData
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+        alert('Username updated successfully!');
+        location.reload();
+    } else {
+        alert('Error: ' + data.message);
+    }
+}
+
+async function updateEmail() {
+    const email = document.getElementById('editEmail').value.trim();
+    if (!email) {
+        alert('Please enter an email');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('action', 'update_email');
+    formData.append('email', email);
+    
+    const response = await fetch('../api/settings.php', {
+        method: 'POST',
+        body: formData
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+        alert('Email updated successfully!');
+        closeModal();
+    } else {
+        alert('Error: ' + data.message);
+    }
+}
+
+async function updatePassword() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        alert('Please fill all password fields');
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        alert('New passwords do not match');
+        return;
+    }
+    
+    if (newPassword.length < 6) {
+        alert('Password must be at least 6 characters');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('action', 'update_password');
+    formData.append('current_password', currentPassword);
+    formData.append('new_password', newPassword);
+    
+    const response = await fetch('../api/settings.php', {
+        method: 'POST',
+        body: formData
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+        alert('Password updated successfully!');
+        closeModal();
+    } else {
+        alert('Error: ' + data.message);
     }
 }
 

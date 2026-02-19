@@ -636,3 +636,28 @@ body {
     gap: 20px;
     padding-bottom: 10px;
 }
+
+/* Message status ticks */
+.status-tick {
+    margin-left: 5px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.status-tick.sent {
+    color: #999;
+}
+
+.status-tick.delivered {
+    color: #999;
+}
+
+.status-tick.read {
+    color: #4fc3f7;
+}
+
+.message.sent .time {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}

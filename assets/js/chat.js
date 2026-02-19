@@ -114,8 +114,28 @@ async function loadMessages() {
     if (data.success && data.messages.length > 0) {
         data.messages.forEach(msg => {
             const msgDiv = document.createElement('div');
-            msgDiv.className = msg.sender_id == currentChatUser ? 'message received' : 'message sent';
-            msgDiv.innerHTML = `<p>${msg.message}</p><span class="time">${new Date(msg.created_at).toLocaleTimeString()}</span>`;
+            const isSent = msg.sender_id != currentChatUser;
+            msgDiv.className = isSent ? 'message sent' : 'message received';
+            
+            // Add status ticks for sent messages
+            let statusIcon = '';
+            if (isSent) {
+                if (msg.is_read) {
+                    // Read - double blue tick
+                    statusIcon = '<span class="status-tick read">✓✓</span>';
+                } else if (msg.is_delivered) {
+                    // Delivered - double grey tick
+                    statusIcon = '<span class="status-tick delivered">✓✓</span>';
+                } else {
+                    // Sent - single grey tick
+                    statusIcon = '<span class="status-tick sent">✓</span>';
+                }
+            }
+            
+            msgDiv.innerHTML = `
+                <p>${msg.message}</p>
+                <span class="time">${new Date(msg.created_at).toLocaleTimeString()} ${statusIcon}</span>
+            `;
             container.appendChild(msgDiv);
         });
         container.scrollTop = container.scrollHeight;
@@ -138,10 +158,24 @@ async function sendMessage() {
         body: formData
     });
     
-    if (response.ok) {
+    const data = await response.json();
+    
+    if (data.success) {
         input.value = '';
         loadMessages();
         loadChats();
+    } else {
+        // Handle warnings and bans
+        if (data.banned) {
+            alert(data.message);
+            // Logout user
+            logout();
+        } else if (data.warning) {
+            alert(data.message);
+            loadNotifications(); // Refresh notifications
+        } else {
+            alert('Error: ' + data.message);
+        }
     }
 }
 

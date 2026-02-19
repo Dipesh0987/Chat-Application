@@ -176,6 +176,21 @@ body {
     font-weight: 600;
 }
 
+.chat-item p {
+    margin: 5px 0 0 0;
+    color: #666;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.chat-item.has-unread p {
+    color: #333;
+    font-weight: 500;
+}
+
 .friend-item {
     display: flex;
     justify-content: space-between;
@@ -291,21 +306,36 @@ body {
     margin: auto;
 }
 
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-right: 40px;
+}
+
 .close {
-    position: sticky;
-    top: 10px;
-    float: right;
-    font-size: 28px;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 32px;
+    font-weight: 300;
     cursor: pointer;
     z-index: 100;
     background: white;
-    width: 30px;
-    height: 30px;
+    width: 35px;
+    height: 35px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
     line-height: 1;
+    color: #666;
+    transition: all 0.2s ease;
+}
+
+.close:hover {
+    background: #f0f0f0;
+    color: #333;
+    transform: rotate(90deg);
 }
 
 #searchUser, #searchFriend {

@@ -71,9 +71,31 @@ async function loadChats() {
                 '<span class="online-status online" title="Online"></span>' : 
                 '<span class="online-status offline" title="Offline"></span>';
             
+            // Truncate long messages intelligently
+            let displayMessage = chat.last_message || 'No messages yet';
+            if (displayMessage !== 'No messages yet') {
+                const words = displayMessage.split(' ');
+                
+                // Check if any single word is too long
+                const hasLongWord = words.some(word => word.length > 30);
+                
+                if (hasLongWord) {
+                    // If there's a very long word, truncate at character level (50 chars)
+                    if (displayMessage.length > 50) {
+                        displayMessage = displayMessage.substring(0, 50) + '...';
+                    }
+                } else if (words.length > 5) {
+                    // If more than 5 words, show first 5 words
+                    displayMessage = words.slice(0, 5).join(' ') + '...';
+                } else if (displayMessage.length > 60) {
+                    // If less than 5 words but still too long, truncate at 60 chars
+                    displayMessage = displayMessage.substring(0, 60) + '...';
+                }
+            }
+            
             chatItem.innerHTML = `
                 <strong>${chat.username} ${onlineStatus}</strong>
-                <p>${chat.last_message || 'No messages yet'}</p>
+                <p>${displayMessage}</p>
                 ${unreadBadge}
             `;
             chatItem.addEventListener('click', () => openChat(chat.user_id, chat.username));

@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once 'config/session.php';
 if (isset($_SESSION['user_id'])) {
     header('Location: index.php');
     exit();
@@ -7,12 +7,14 @@ if (isset($_SESSION['user_id'])) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat App - Register</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
+
 <body>
     <div class="container">
         <div class="auth-box">
@@ -32,4 +34,5 @@ if (isset($_SESSION['user_id'])) {
     <script src="assets/js/dialog.js"></script>
     <script src="assets/js/auth.js"></script>
 </body>
+
 </html>

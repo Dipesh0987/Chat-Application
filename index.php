@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once 'config/session.php';
 if (isset($_SESSION['user_id'])) {
     if ($_SESSION['is_admin']) {
         header('Location: admin/dashboard.php');
@@ -11,12 +11,14 @@ if (isset($_SESSION['user_id'])) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat App - Login</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
+
 <body>
     <div class="container">
         <div class="auth-box">
@@ -32,4 +34,5 @@ if (isset($_SESSION['user_id'])) {
     </div>
     <script src="assets/js/auth.js"></script>
 </body>
+
 </html>

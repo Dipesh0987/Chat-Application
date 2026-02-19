@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once '../config/session.php';
 require_once '../config/database.php';
 
 header('Content-Type: application/json');
@@ -24,7 +24,7 @@ if ($action === 'get') {
     $stmt = $db->prepare($query);
     $stmt->bindParam(':user_id', $user_id);
     $stmt->execute();
-    
+
     echo json_encode(['success' => true, 'notifications' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
 }
 
@@ -33,19 +33,19 @@ if ($action === 'get_unread_count') {
     $stmt = $db->prepare($query);
     $stmt->bindParam(':user_id', $user_id);
     $stmt->execute();
-    
+
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
     echo json_encode(['success' => true, 'count' => $result['count']]);
 }
 
 if ($action === 'mark_read') {
     $notification_id = $_POST['notification_id'] ?? 0;
-    
+
     $query = "UPDATE notifications SET is_read = TRUE WHERE id = :id AND user_id = :user_id";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':id', $notification_id);
     $stmt->bindParam(':user_id', $user_id);
-    
+
     if ($stmt->execute()) {
         echo json_encode(['success' => true]);
     } else {
@@ -57,7 +57,7 @@ if ($action === 'mark_all_read') {
     $query = "UPDATE notifications SET is_read = TRUE WHERE user_id = :user_id";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':user_id', $user_id);
-    
+
     if ($stmt->execute()) {
         echo json_encode(['success' => true]);
     } else {
@@ -67,12 +67,12 @@ if ($action === 'mark_all_read') {
 
 if ($action === 'delete') {
     $notification_id = $_POST['notification_id'] ?? 0;
-    
+
     $query = "DELETE FROM notifications WHERE id = :id AND user_id = :user_id";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':id', $notification_id);
     $stmt->bindParam(':user_id', $user_id);
-    
+
     if ($stmt->execute()) {
         echo json_encode(['success' => true]);
     } else {

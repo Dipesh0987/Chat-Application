@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', function() {
     loadUserProfile();
 
     document.getElementById('settingsBtn').addEventListener('click', showSettingsModal);
-    document.getElementById('notificationBtn').addEventListener('click', showNotificationsModal);
     document.getElementById('newChatBtn').addEventListener('click', showNewChatModal);
     document.getElementById('addFriendBtn').addEventListener('click', showAddFriendModal);
     document.getElementById('sendBtn').addEventListener('click', sendMessage);
@@ -235,7 +234,7 @@ async function sendMessage() {
             const data = await response.json();
             
             if (data.success) {
-                dialog.success('File sent successfully!');
+                // dialog.success('File sent successfully!');
                 input.value = '';
                 removeFile();
                 loadMessages();
@@ -526,6 +525,16 @@ function showSettingsModal() {
                 <button id="updatePasswordBtn" class="btn-primary">Update Password</button>
             </div>
             <div class="setting-item">
+                <label>Notifications</label>
+                <button id="modalNotificationBtn" class="btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    View Notifications
+                </button>
+            </div>
+            <div class="setting-item">
                 <button class="btn-danger" id="deleteAccountBtn">Delete Account</button>
             </div>
             <div class="setting-item">
@@ -542,6 +551,7 @@ function showSettingsModal() {
     document.getElementById('updatePasswordBtn').addEventListener('click', updatePassword);
     document.getElementById('deleteAccountBtn').addEventListener('click', showDeleteAccountConfirm);
     document.getElementById('logoutBtnSettings').addEventListener('click', logout);
+    document.getElementById('modalNotificationBtn').addEventListener('click', showNotificationsModal);
 }
 
 async function uploadProfileImage() {

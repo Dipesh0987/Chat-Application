@@ -178,4 +178,16 @@ if ($action === 'get_chats') {
 
     echo json_encode(['success' => true, 'chats' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
 }
+
+if ($action === 'get_user_info') {
+    $other_user_id = $_GET['user_id'] ?? 0;
+
+    $query = "SELECT id, username, profile_image, is_online, last_seen FROM users WHERE id = :user_id";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':user_id', $other_user_id);
+    $stmt->execute();
+
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    echo json_encode(['success' => true, 'user' => $user]);
+}
 ?>

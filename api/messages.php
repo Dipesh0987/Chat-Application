@@ -57,11 +57,20 @@ if ($action === 'send') {
         exit();
     }
 
-    $query = "INSERT INTO messages (sender_id, receiver_id, message, is_delivered) VALUES (:sender_id, :receiver_id, :message, FALSE)";
+    // Check if receiver is online
+    $check_online = "SELECT is_online FROM users WHERE id = :receiver_id";
+    $stmt_online = $db->prepare($check_online);
+    $stmt_online->bindParam(':receiver_id', $receiver_id);
+    $stmt_online->execute();
+    $receiver = $stmt_online->fetch(PDO::FETCH_ASSOC);
+    $is_delivered = ($receiver && $receiver['is_online']) ? 1 : 0;
+
+    $query = "INSERT INTO messages (sender_id, receiver_id, message, is_delivered) VALUES (:sender_id, :receiver_id, :message, :is_delivered)";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':sender_id', $user_id);
     $stmt->bindParam(':receiver_id', $receiver_id);
     $stmt->bindParam(':message', $message);
+    $stmt->bindParam(':is_delivered', $is_delivered);
 
     if ($stmt->execute()) {
         $message_id = $db->lastInsertId();
@@ -161,5 +170,24 @@ if ($action === 'get_status') {
     $stmt->execute();
 
     echo json_encode(['success' => true, 'statuses' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+}
+
+if ($action === 'get_media') {
+    $other_user_id = $_GET['user_id'] ?? 0;
+
+    $query = "SELECT * FROM messages 
+              WHERE ((sender_id = :user_id AND receiver_id = :other_user_id) 
+                 OR (sender_id = :other_user_id2 AND receiver_id = :user_id2))
+              AND message_type IN ('image', 'video', 'document')
+              ORDER BY created_at DESC";
+
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':user_id', $user_id);
+    $stmt->bindParam(':user_id2', $user_id);
+    $stmt->bindParam(':other_user_id', $other_user_id);
+    $stmt->bindParam(':other_user_id2', $other_user_id);
+    $stmt->execute();
+
+    echo json_encode(['success' => true, 'media' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
 }
 ?>

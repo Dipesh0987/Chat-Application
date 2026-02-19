@@ -54,7 +54,17 @@ if (!isset($_SESSION['user_id']) || $_SESSION['is_admin']) {
         </div>
         <div class="chat-area">
             <div class="chat-header" id="chatHeader">
-                <span>Select a chat to start messaging</span>
+                <div class="chat-header-info">
+                    <span>Select a chat to start messaging</span>
+                </div>
+                <button id="toggleInfoBtn" class="icon-btn hidden" title="Chat Info">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
             </div>
             <div class="messages" id="messagesContainer"></div>
             <div class="file-upload-area hidden" id="fileUploadArea">
@@ -88,6 +98,28 @@ if (!isset($_SESSION['user_id']) || $_SESSION['is_admin']) {
             </div>
             <div class="emoji-picker hidden" id="emojiPicker">
                 <div class="emoji-grid" id="emojiGrid"></div>
+            </div>
+        </div>
+        <div class="chat-info-sidebar hidden" id="chatInfoSidebar">
+            <div class="sidebar-close-container">
+                <button id="closeInfoBtn" class="close-info-btn">&times;</button>
+            </div>
+            <div class="info-user-profile">
+                <img id="infoUserProfileImg" src="../assets/images/default-avatar.svg" alt="Profile"
+                    class="profile-img-large">
+                <h2 id="infoUserName">Name</h2>
+            </div>
+            <div class="info-section">
+                <div class="info-section-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>Media, links and docs</span>
+                    <span id="mediaCount" class="count-badge">0</span>
+                </div>
+                <div id="mediaGrid" class="media-grid"></div>
+                <div id="docsList" class="docs-list"></div>
             </div>
         </div>
     </div>

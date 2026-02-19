@@ -147,12 +147,18 @@ if ($action === 'update_online_status') {
         $database = new Database();
         $db = $database->getConnection();
 
-        $is_online = ($status === 'online') ? 1 : 0;
         $query = "UPDATE users SET is_online = :is_online, last_seen = NOW() WHERE id = :user_id";
         $stmt = $db->prepare($query);
         $stmt->bindParam(':is_online', $is_online);
         $stmt->bindParam(':user_id', $user_id);
         $stmt->execute();
+
+        if ($is_online) {
+            $mark_delivered = "UPDATE messages SET is_delivered = TRUE WHERE receiver_id = :user_id AND is_delivered = FALSE";
+            $stmt_delivered = $db->prepare($mark_delivered);
+            $stmt_delivered->bindParam(':user_id', $user_id);
+            $stmt_delivered->execute();
+        }
 
         echo json_encode(['success' => true]);
     } else {

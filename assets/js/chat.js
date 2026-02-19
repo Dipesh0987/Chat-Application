@@ -3,7 +3,7 @@ let messageInterval = null;
 let notificationInterval = null;
 let chatListInterval = null;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     loadChats();
     loadFriends();
     loadFriendRequests();
@@ -14,21 +14,24 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('newChatBtn').addEventListener('click', showNewChatModal);
     document.getElementById('addFriendBtn').addEventListener('click', showAddFriendModal);
     document.getElementById('sendBtn').addEventListener('click', sendMessage);
-    
-    document.getElementById('messageInput').addEventListener('keypress', function(e) {
+
+    document.getElementById('toggleInfoBtn').addEventListener('click', toggleChatInfoSidebar);
+    document.getElementById('closeInfoBtn').addEventListener('click', toggleChatInfoSidebar);
+
+    document.getElementById('messageInput').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             sendMessage();
         }
     });
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const tab = this.dataset.tab;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
             this.classList.add('active');
             document.getElementById(tab + '-tab').classList.remove('hidden');
-            
+
             if (tab === 'requests') {
                 loadFriendRequests();
             }
@@ -36,10 +39,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.querySelector('.close').addEventListener('click', closeModal);
-    
+
     // Poll for notifications every 10 seconds
     notificationInterval = setInterval(loadNotifications, 10000);
-    
+
     // Poll for chat list updates every 5 seconds (real-time updates)
     chatListInterval = setInterval(loadChats, 5000);
 });
@@ -47,37 +50,37 @@ document.addEventListener('DOMContentLoaded', function() {
 async function loadChats() {
     const response = await fetch('../api/users.php?action=get_chats');
     const data = await response.json();
-    
+
     const chatList = document.getElementById('chatList');
     chatList.innerHTML = '';
-    
+
     if (data.success && data.chats.length > 0) {
         data.chats.forEach(chat => {
             const chatItem = document.createElement('div');
             chatItem.className = 'chat-item';
             chatItem.style.position = 'relative';
-            
+
             // Highlight if there are unread messages
             if (chat.unread_count > 0) {
                 chatItem.classList.add('has-unread');
             }
-            
-            const unreadBadge = chat.unread_count > 0 
-                ? `<span class="unread-badge">${chat.unread_count}</span>` 
+
+            const unreadBadge = chat.unread_count > 0
+                ? `<span class="unread-badge">${chat.unread_count}</span>`
                 : '';
-            
-            const onlineStatus = chat.is_online ? 
-                '<span class="online-status online" title="Online"></span>' : 
+
+            const onlineStatus = chat.is_online ?
+                '<span class="online-status online" title="Online"></span>' :
                 '<span class="online-status offline" title="Offline"></span>';
-            
+
             // Truncate long messages intelligently
             let displayMessage = chat.last_message || 'No messages yet';
             if (displayMessage !== 'No messages yet') {
                 const words = displayMessage.split(' ');
-                
+
                 // Check if any single word is too long
                 const hasLongWord = words.some(word => word.length > 30);
-                
+
                 if (hasLongWord) {
                     // If there's a very long word, truncate at character level (50 chars)
                     if (displayMessage.length > 50) {
@@ -91,7 +94,7 @@ async function loadChats() {
                     displayMessage = displayMessage.substring(0, 60) + '...';
                 }
             }
-            
+
             chatItem.innerHTML = `
                 <strong>${chat.username} ${onlineStatus}</strong>
                 <p>${displayMessage}</p>
@@ -108,19 +111,19 @@ async function loadChats() {
 async function loadFriends() {
     const response = await fetch('../api/users.php?action=get_friends');
     const data = await response.json();
-    
+
     const friendList = document.getElementById('friendList');
     friendList.innerHTML = '';
-    
+
     if (data.success && data.friends.length > 0) {
         data.friends.forEach(friend => {
             const friendItem = document.createElement('div');
             friendItem.className = 'friend-item';
-            
-            const onlineStatus = friend.is_online ? 
-                '<span class="online-status online" title="Online"></span>' : 
+
+            const onlineStatus = friend.is_online ?
+                '<span class="online-status online" title="Online"></span>' :
                 '<span class="online-status offline" title="Offline"></span>';
-            
+
             friendItem.innerHTML = `
                 <span>${friend.username} ${onlineStatus}</span>
                 <button class="message-btn" onclick="openChat(${friend.id}, '${friend.username}')">Message</button>
@@ -134,31 +137,84 @@ async function loadFriends() {
 
 function openChat(userId, username) {
     currentChatUser = userId;
-    document.getElementById('chatHeader').innerHTML = `<strong>${username}</strong>`;
+    document.getElementById('chatHeader').innerHTML = `
+        <div class="chat-header-info">
+            <button class="back-btn-mobile" id="mobileBackBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+            </button>
+            <strong>
+                ${username}
+                <span id="headerOnlineStatus" class="online-status offline"></span>
+            </strong>
+        </div>
+        <button id="toggleInfoBtn" class="icon-btn" title="Chat Info">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+    `;
+
+    updateHeaderStatus(userId);
+
+    // Add mobile back button listener
+    const mobileBackBtn = document.getElementById('mobileBackBtn');
+    if (mobileBackBtn) {
+        mobileBackBtn.addEventListener('click', () => {
+            document.querySelector('.chat-area').classList.remove('active');
+        });
+    }
+
+    // Activate chat area for mobile
+    document.querySelector('.chat-area').classList.add('active');
+
+    // Re-add event listener to the new button
+    document.getElementById('toggleInfoBtn').addEventListener('click', toggleChatInfoSidebar);
+
     document.getElementById('messageInputArea').classList.remove('hidden');
-    
+
+    // Hide sidebar if switching chat
+    document.getElementById('chatInfoSidebar').classList.add('hidden');
+
     if (messageInterval) clearInterval(messageInterval);
     loadMessages();
     messageInterval = setInterval(loadMessages, 2000);
 }
 
+async function updateHeaderStatus(userId) {
+    const response = await fetch(`../api/users.php?action=get_user_info&user_id=${userId}`);
+    const data = await response.json();
+
+    if (data.success && data.user) {
+        const statusDot = document.getElementById('headerOnlineStatus');
+        if (statusDot) {
+            statusDot.className = data.user.is_online ? 'online-status online' : 'online-status offline';
+            statusDot.title = data.user.is_online ? 'Online' : 'Offline';
+        }
+    }
+}
+
 async function loadMessages() {
     if (!currentChatUser) return;
-    
+
     const response = await fetch(`../api/messages.php?action=get&user_id=${currentChatUser}`);
     const data = await response.json();
-    
+
     const container = document.getElementById('messagesContainer');
     container.innerHTML = '';
-    
+
     if (data.success && data.messages.length > 0) {
         data.messages.forEach(msg => {
             const msgDiv = document.createElement('div');
             const isSent = msg.sender_id != currentChatUser;
             msgDiv.className = isSent ? 'message sent' : 'message received';
-            
+
             let content = '';
-            
+
             // Handle different message types
             if (msg.message_type === 'image') {
                 content = `
@@ -188,19 +244,33 @@ async function loadMessages() {
             } else {
                 content = `<p>${msg.message}</p>`;
             }
-            
+
             // Add status ticks for sent messages
             let statusIcon = '';
             if (isSent) {
-                if (msg.is_read) {
-                    statusIcon = '<span class="status-tick read">✓✓</span>';
-                } else if (msg.is_delivered) {
-                    statusIcon = '<span class="status-tick delivered">✓✓</span>';
+                const tickColor = msg.is_read ? 'tick read' : 'tick';
+                if (msg.is_read || msg.is_delivered) {
+                    // Double tick for delivered and read
+                    statusIcon = `
+                        <div class="status-ticks">
+                            <svg class="${tickColor}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <svg class="${tickColor}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: -10px;">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>`;
                 } else {
-                    statusIcon = '<span class="status-tick sent">✓</span>';
+                    // Single tick for sent
+                    statusIcon = `
+                        <div class="status-ticks">
+                            <svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>`;
                 }
             }
-            
+
             msgDiv.innerHTML = `
                 ${content}
                 <span class="time">${new Date(msg.created_at).toLocaleTimeString()} ${statusIcon}</span>
@@ -214,9 +284,9 @@ async function loadMessages() {
 async function sendMessage() {
     const input = document.getElementById('messageInput');
     const message = input.value.trim();
-    
+
     if (!currentChatUser) return;
-    
+
     // If file is selected, upload it
     if (selectedFile) {
         const formData = new FormData();
@@ -224,15 +294,15 @@ async function sendMessage() {
         formData.append('receiver_id', currentChatUser);
         formData.append('file', selectedFile);
         formData.append('caption', message);
-        
+
         try {
             const response = await fetch('../api/upload.php', {
                 method: 'POST',
                 body: formData
             });
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
                 // dialog.success('File sent successfully!');
                 input.value = '';
@@ -248,22 +318,22 @@ async function sendMessage() {
         }
         return;
     }
-    
+
     // Otherwise send text message
     if (!message) return;
-    
+
     const formData = new FormData();
     formData.append('action', 'send');
     formData.append('receiver_id', currentChatUser);
     formData.append('message', message);
-    
+
     const response = await fetch('../api/messages.php', {
         method: 'POST',
         body: formData
     });
-    
+
     const data = await response.json();
-    
+
     if (data.success) {
         input.value = '';
         loadMessages();
@@ -289,17 +359,17 @@ function showNewChatModal() {
         <div id="searchResults"></div>
     `;
     document.getElementById('modal').classList.remove('hidden');
-    
-    document.getElementById('searchUser').addEventListener('input', async function(e) {
+
+    document.getElementById('searchUser').addEventListener('input', async function (e) {
         const search = e.target.value;
         if (search.length < 2) return;
-        
+
         const response = await fetch(`../api/users.php?action=search&search=${search}`);
         const data = await response.json();
-        
+
         const results = document.getElementById('searchResults');
         results.innerHTML = '';
-        
+
         if (data.success && data.users.length > 0) {
             data.users.forEach(user => {
                 const userDiv = document.createElement('div');
@@ -322,17 +392,17 @@ function showAddFriendModal() {
         <div id="friendSearchResults"></div>
     `;
     document.getElementById('modal').classList.remove('hidden');
-    
-    document.getElementById('searchFriend').addEventListener('input', async function(e) {
+
+    document.getElementById('searchFriend').addEventListener('input', async function (e) {
         const search = e.target.value;
         if (search.length < 2) return;
-        
+
         const response = await fetch(`../api/users.php?action=search&search=${search}`);
         const data = await response.json();
-        
+
         const results = document.getElementById('friendSearchResults');
         results.innerHTML = '';
-        
+
         if (data.success && data.users.length > 0) {
             data.users.forEach(user => {
                 const userDiv = document.createElement('div');
@@ -351,12 +421,12 @@ async function addFriend(friendId) {
     const formData = new FormData();
     formData.append('action', 'send_friend_request');
     formData.append('friend_id', friendId);
-    
+
     const response = await fetch('../api/users.php', {
         method: 'POST',
         body: formData
     });
-    
+
     const data = await response.json();
     alert(data.message);
     if (data.success) {
@@ -367,10 +437,10 @@ async function addFriend(friendId) {
 async function loadFriendRequests() {
     const response = await fetch('../api/users.php?action=get_friend_requests');
     const data = await response.json();
-    
+
     const requestList = document.getElementById('requestList');
     requestList.innerHTML = '';
-    
+
     if (data.success && data.requests.length > 0) {
         data.requests.forEach(req => {
             const reqItem = document.createElement('div');
@@ -393,12 +463,12 @@ async function acceptFriendRequest(friendId) {
     const formData = new FormData();
     formData.append('action', 'accept_friend_request');
     formData.append('friend_id', friendId);
-    
+
     const response = await fetch('../api/users.php', {
         method: 'POST',
         body: formData
     });
-    
+
     const data = await response.json();
     if (data.success) {
         loadFriendRequests();
@@ -410,12 +480,12 @@ async function rejectFriendRequest(friendId) {
     const formData = new FormData();
     formData.append('action', 'reject_friend_request');
     formData.append('friend_id', friendId);
-    
+
     const response = await fetch('../api/users.php', {
         method: 'POST',
         body: formData
     });
-    
+
     const data = await response.json();
     if (data.success) {
         loadFriendRequests();
@@ -425,7 +495,7 @@ async function rejectFriendRequest(friendId) {
 async function loadNotifications() {
     const response = await fetch('../api/notifications.php?action=get_unread_count');
     const data = await response.json();
-    
+
     if (data.success && data.count > 0) {
         document.getElementById('notificationBadge').textContent = data.count;
         document.getElementById('notificationBadge').classList.remove('hidden');
@@ -437,19 +507,19 @@ async function loadNotifications() {
 async function showNotificationsModal() {
     const response = await fetch('../api/notifications.php?action=get');
     const data = await response.json();
-    
+
     document.getElementById('modalTitle').textContent = 'Notifications';
     const modalBody = document.getElementById('modalBody');
     modalBody.innerHTML = '';
-    
+
     if (data.success && data.notifications.length > 0) {
         const notifContainer = document.createElement('div');
         notifContainer.className = 'notification-list';
-        
+
         data.notifications.forEach(notif => {
             const notifDiv = document.createElement('div');
             notifDiv.className = 'notification-item' + (notif.is_read ? ' read' : '');
-            
+
             let message = '';
             if (notif.type === 'friend_request') {
                 message = `${notif.from_username} sent you a friend request`;
@@ -460,14 +530,14 @@ async function showNotificationsModal() {
             } else if (notif.type === 'warning') {
                 message = notif.message || `You received a warning from ${notif.from_username}`;
             }
-            
+
             notifDiv.innerHTML = `
                 <p>${message}</p>
                 <span class="time">${new Date(notif.created_at).toLocaleString()}</span>
             `;
             notifContainer.appendChild(notifDiv);
         });
-        
+
         const markAllBtn = document.createElement('button');
         markAllBtn.textContent = 'Mark All as Read';
         markAllBtn.className = 'btn-primary';
@@ -479,20 +549,20 @@ async function showNotificationsModal() {
             loadNotifications();
             closeModal();
         };
-        
+
         modalBody.appendChild(notifContainer);
         modalBody.appendChild(markAllBtn);
     } else {
         modalBody.innerHTML = '<p class="empty-state">No notifications</p>';
     }
-    
+
     document.getElementById('modal').classList.remove('hidden');
 }
 
 async function loadUserProfile() {
     const response = await fetch('../api/settings.php?action=get_profile');
     const data = await response.json();
-    
+
     if (data.success && data.user.profile_image) {
         document.getElementById('userProfileImg').src = '../' + data.user.profile_image;
     }
@@ -501,6 +571,56 @@ async function loadUserProfile() {
 function showSettingsModal() {
     document.getElementById('modalTitle').textContent = 'Settings';
     document.getElementById('modalBody').innerHTML = `
+        <div class="settings-menu">
+            <button class="settings-menu-item" id="menuEditProfile">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Edit Profile
+            </button>
+            <button class="settings-menu-item" id="menuNotifications">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                View Notifications
+            </button>
+            <button class="settings-menu-item danger" id="menuDeleteAccount">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Delete Account
+            </button>
+            <button class="settings-menu-item" id="menuLogout">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                Logout
+            </button>
+        </div>
+    `;
+    document.getElementById('modal').classList.remove('hidden');
+
+    document.getElementById('menuEditProfile').addEventListener('click', showEditProfile);
+    document.getElementById('menuNotifications').addEventListener('click', showNotificationsModal);
+    document.getElementById('menuDeleteAccount').addEventListener('click', showDeleteAccountConfirm);
+    document.getElementById('menuLogout').addEventListener('click', logout);
+}
+
+function showEditProfile() {
+    document.getElementById('modalTitle').textContent = 'Edit Profile';
+    document.getElementById('modalBody').innerHTML = `
+        <button class="back-btn" id="settingsBackBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Settings
+        </button>
         <div class="settings-container">
             <div class="setting-item">
                 <label>Profile Picture</label>
@@ -524,34 +644,81 @@ function showSettingsModal() {
                 <input type="password" id="confirmPassword" placeholder="Confirm new password">
                 <button id="updatePasswordBtn" class="btn-primary">Update Password</button>
             </div>
-            <div class="setting-item">
-                <label>Notifications</label>
-                <button id="modalNotificationBtn" class="btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                    </svg>
-                    View Notifications
-                </button>
-            </div>
-            <div class="setting-item">
-                <button class="btn-danger" id="deleteAccountBtn">Delete Account</button>
-            </div>
-            <div class="setting-item">
-                <button class="btn-secondary" id="logoutBtnSettings">Logout</button>
-            </div>
         </div>
     `;
-    document.getElementById('modal').classList.remove('hidden');
-    
-    // Add event listeners after modal is created
+
+    document.getElementById('settingsBackBtn').addEventListener('click', showSettingsModal);
     document.getElementById('uploadBtn').addEventListener('click', uploadProfileImage);
     document.getElementById('updateUsernameBtn').addEventListener('click', updateUsername);
     document.getElementById('updateEmailBtn').addEventListener('click', updateEmail);
     document.getElementById('updatePasswordBtn').addEventListener('click', updatePassword);
-    document.getElementById('deleteAccountBtn').addEventListener('click', showDeleteAccountConfirm);
-    document.getElementById('logoutBtnSettings').addEventListener('click', logout);
-    document.getElementById('modalNotificationBtn').addEventListener('click', showNotificationsModal);
+}
+
+function toggleChatInfoSidebar() {
+    const sidebar = document.getElementById('chatInfoSidebar');
+    sidebar.classList.toggle('hidden');
+
+    if (!sidebar.classList.contains('hidden') && currentChatUser) {
+        loadChatMedia(currentChatUser);
+    }
+}
+
+async function loadChatMedia(userId) {
+    const response = await fetch(`../api/messages.php?action=get_media&user_id=${userId}`);
+    const data = await response.json();
+
+    if (data.success) {
+        const mediaGrid = document.getElementById('mediaGrid');
+        const docsList = document.getElementById('docsList');
+        const mediaCount = document.getElementById('mediaCount');
+
+        mediaGrid.innerHTML = '';
+        docsList.innerHTML = '';
+        mediaCount.textContent = data.media.length;
+
+        // Fetch partner details
+        const userResponse = await fetch(`../api/users.php?action=get_user_info&user_id=${userId}`);
+        const userData = await userResponse.json();
+
+        if (userData.success && userData.user) {
+            document.getElementById('infoUserName').textContent = userData.user.username;
+            if (userData.user.profile_image) {
+                document.getElementById('infoUserProfileImg').src = '../' + userData.user.profile_image;
+            } else {
+                document.getElementById('infoUserProfileImg').src = '../assets/images/default-avatar.svg';
+            }
+        }
+
+        data.media.forEach(item => {
+            if (item.message_type === 'image') {
+                const img = document.createElement('div');
+                img.className = 'grid-item';
+                img.innerHTML = `<img src="../${item.file_path}" alt="${item.file_name}" onclick="window.open('../${item.file_path}', '_blank')">`;
+                mediaGrid.appendChild(img);
+            } else if (item.message_type === 'video') {
+                const video = document.createElement('div');
+                video.className = 'grid-item';
+                video.innerHTML = `<video src="../${item.file_path}" onclick="window.open('../${item.file_path}', '_blank')"></video>`;
+                mediaGrid.appendChild(video);
+            } else if (item.message_type === 'document') {
+                const doc = document.createElement('div');
+                doc.className = 'doc-item';
+                doc.onclick = () => window.open('../${item.file_path}', '_blank');
+                doc.innerHTML = `
+                    <div class="doc-icon">📄</div>
+                    <div class="doc-info">
+                        <span class="doc-name">${item.file_name}</span>
+                        <span class="doc-date">${new Date(item.created_at).toLocaleDateString()}</span>
+                    </div>
+                `;
+                docsList.appendChild(doc);
+            }
+        });
+
+        if (data.media.length === 0) {
+            mediaGrid.innerHTML = '<p style="grid-column: span 3; color: #666; font-size: 0.8rem;">No media shared yet</p>';
+        }
+    }
 }
 
 async function uploadProfileImage() {
@@ -560,35 +727,35 @@ async function uploadProfileImage() {
         alert('Please select an image');
         return;
     }
-    
+
     const file = fileInput.files[0];
-    
+
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
         alert('Please select a valid image file (JPG, PNG, or GIF)');
         return;
     }
-    
+
     // Validate file size (5MB)
     if (file.size > 5000000) {
         alert('File size must be less than 5MB');
         return;
     }
-    
+
     const formData = new FormData();
     formData.append('action', 'upload_profile_image');
     formData.append('profile_image', file);
-    
+
     try {
         const response = await fetch('../api/settings.php', {
             method: 'POST',
             body: formData
         });
-        
+
         const text = await response.text();
         console.log('Server response:', text);
-        
+
         let data;
         try {
             data = JSON.parse(text);
@@ -597,7 +764,7 @@ async function uploadProfileImage() {
             alert('Server error: Invalid response. Check console for details.');
             return;
         }
-        
+
         if (data.success) {
             alert('Profile image updated successfully!');
             loadUserProfile();
@@ -617,16 +784,16 @@ async function updateUsername() {
         alert('Please enter a username');
         return;
     }
-    
+
     const formData = new FormData();
     formData.append('action', 'update_username');
     formData.append('username', username);
-    
+
     const response = await fetch('../api/settings.php', {
         method: 'POST',
         body: formData
     });
-    
+
     const data = await response.json();
     if (data.success) {
         alert('Username updated successfully!');
@@ -642,16 +809,16 @@ async function updateEmail() {
         alert('Please enter an email');
         return;
     }
-    
+
     const formData = new FormData();
     formData.append('action', 'update_email');
     formData.append('email', email);
-    
+
     const response = await fetch('../api/settings.php', {
         method: 'POST',
         body: formData
     });
-    
+
     const data = await response.json();
     if (data.success) {
         alert('Email updated successfully!');
@@ -665,32 +832,32 @@ async function updatePassword() {
     const currentPassword = document.getElementById('currentPassword').value;
     const newPassword = document.getElementById('newPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
-    
+
     if (!currentPassword || !newPassword || !confirmPassword) {
         alert('Please fill all password fields');
         return;
     }
-    
+
     if (newPassword !== confirmPassword) {
         alert('New passwords do not match');
         return;
     }
-    
+
     if (newPassword.length < 6) {
         alert('Password must be at least 6 characters');
         return;
     }
-    
+
     const formData = new FormData();
     formData.append('action', 'update_password');
     formData.append('current_password', currentPassword);
     formData.append('new_password', newPassword);
-    
+
     const response = await fetch('../api/settings.php', {
         method: 'POST',
         body: formData
     });
-    
+
     const data = await response.json();
     if (data.success) {
         alert('Password updated successfully!');
@@ -713,12 +880,12 @@ async function deleteAccount(password) {
     const formData = new FormData();
     formData.append('action', 'delete_account');
     formData.append('password', password);
-    
+
     const response = await fetch('../api/settings.php', {
         method: 'POST',
         body: formData
     });
-    
+
     const data = await response.json();
     if (data.success) {
         alert('Account deleted');
@@ -735,15 +902,15 @@ function closeModal() {
 async function logout() {
     // Update online status to offline
     updateOnlineStatus('offline');
-    
+
     const formData = new FormData();
     formData.append('action', 'logout');
-    
+
     await fetch('../api/auth.php', {
         method: 'POST',
         body: formData
     });
-    
+
     window.location.href = '../index.php';
 }
 
@@ -756,14 +923,14 @@ async function logout() {
 let selectedFile = null;
 
 // Initialize new features
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Attachment button
     if (document.getElementById('attachmentBtn')) {
         document.getElementById('attachmentBtn').addEventListener('click', () => {
             document.getElementById('fileInput').click();
         });
     }
-    
+
     // File input change
     if (document.getElementById('fileInput')) {
         document.getElementById('fileInput').addEventListener('change', (e) => {
@@ -774,12 +941,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Emoji button
     if (document.getElementById('emojiBtn')) {
         document.getElementById('emojiBtn').addEventListener('click', toggleEmojiPicker);
     }
-    
+
     // Close emoji picker when clicking outside
     document.addEventListener('click', (e) => {
         const picker = document.getElementById('emojiPicker');
@@ -788,15 +955,15 @@ document.addEventListener('DOMContentLoaded', function() {
             picker.classList.add('hidden');
         }
     });
-    
+
     // Update online status
     updateOnlineStatus('online');
-    
+
     // Keep alive - update status every 30 seconds
     setInterval(() => {
         updateOnlineStatus('online');
     }, 30000);
-    
+
     // Set offline when page unloads
     window.addEventListener('beforeunload', () => {
         updateOnlineStatus('offline');
@@ -807,9 +974,9 @@ document.addEventListener('DOMContentLoaded', function() {
 function showFilePreview(file) {
     const preview = document.getElementById('filePreview');
     const uploadArea = document.getElementById('fileUploadArea');
-    
+
     const fileSize = (file.size / 1024 / 1024).toFixed(2);
-    
+
     if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -832,7 +999,7 @@ function showFilePreview(file) {
             </div>
         `;
     }
-    
+
     uploadArea.classList.remove('hidden');
 }
 
@@ -847,12 +1014,12 @@ function removeFile() {
 function toggleEmojiPicker() {
     const picker = document.getElementById('emojiPicker');
     picker.classList.toggle('hidden');
-    
+
     if (!picker.classList.contains('hidden')) {
-        const emojis = ['😀','😂','😍','😊','😎','😢','😡','👍','👎','❤️','🎉','🔥','⭐','✅','❌','💯','🙏','👏','💪','🤔','😴','🤗','😱','🤩','😇'];
+        const emojis = ['😀', '😂', '😍', '😊', '😎', '😢', '😡', '👍', '👎', '❤️', '🎉', '🔥', '⭐', '✅', '❌', '💯', '🙏', '👏', '💪', '🤔', '😴', '🤗', '😱', '🤩', '😇'];
         const grid = document.getElementById('emojiGrid');
         grid.innerHTML = '';
-        
+
         emojis.forEach(emoji => {
             const item = document.createElement('div');
             item.className = 'emoji-item';
@@ -873,7 +1040,7 @@ function updateOnlineStatus(status) {
     const formData = new FormData();
     formData.append('action', 'update_online_status');
     formData.append('status', status);
-    
+
     fetch('../api/auth.php', {
         method: 'POST',
         body: formData

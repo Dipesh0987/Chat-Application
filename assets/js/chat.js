@@ -329,74 +329,74 @@ async function loadMessages() {
                 const isSent = msg.sender_id != currentChatUser;
                 msgDiv.className = isSent ? 'message sent' : 'message received';
 
-            let content = '';
+                let content = '';
 
-            // Handle different message types
-            if (msg.message_type === 'image') {
-                content = `
-                    <div class="message-file">
-                        <img src="../${msg.file_path}" alt="${msg.file_name}" onclick="openImageLightbox('../${msg.file_path}')" style="max-width: 250px; max-height: 250px; cursor: pointer; border-radius: 8px;">
-                        ${msg.message !== '[image]' ? `<p>${msg.message}</p>` : ''}
-                    </div>
-                `;
-            } else if (msg.message_type === 'video') {
-                content = `
-                    <div class="message-file">
-                        <video controls style="max-width: 250px; border-radius: 8px;">
-                            <source src="../${msg.file_path}" type="video/mp4">
-                        </video>
-                        ${msg.message !== '[video]' ? `<p>${msg.message}</p>` : ''}
-                    </div>
-                `;
-            } else if (msg.message_type === 'document') {
-                content = `
-                    <div class="message-file">
-                        <div style="font-size: 40px;">📄</div>
-                        <p><strong>${msg.file_name}</strong></p>
-                        <button class="download-btn" onclick="window.open('../${msg.file_path}', '_blank')" style="padding: 5px 10px; background: #0084ff; color: white; border: none; border-radius: 4px; cursor: pointer;">Download</button>
-                        ${msg.message !== '[document]' ? `<p>${msg.message}</p>` : ''}
-                    </div>
-                `;
-            } else {
-                content = `<p>${msg.message}</p>`;
-            }
-
-            // Add status ticks for sent messages
-            let statusIcon = '';
-            if (isSent) {
-                const tickColor = msg.is_read ? 'tick read' : 'tick';
-                if (msg.is_read || msg.is_delivered) {
-                    // Double tick for delivered and read
-                    statusIcon = `
-                        <div class="status-ticks">
-                            <svg class="${tickColor}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                            <svg class="${tickColor}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: -10px;">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </div>`;
+                // Handle different message types
+                if (msg.message_type === 'image') {
+                    content = `
+                        <div class="message-file">
+                            <img src="../${msg.file_path}" alt="${msg.file_name}" onclick="openImageLightbox('../${msg.file_path}')" style="max-width: 250px; max-height: 250px; cursor: pointer; border-radius: 8px;">
+                            ${msg.message !== '[image]' ? `<p>${msg.message}</p>` : ''}
+                        </div>
+                    `;
+                } else if (msg.message_type === 'video') {
+                    content = `
+                        <div class="message-file">
+                            <video controls style="max-width: 250px; border-radius: 8px;">
+                                <source src="../${msg.file_path}" type="video/mp4">
+                            </video>
+                            ${msg.message !== '[video]' ? `<p>${msg.message}</p>` : ''}
+                        </div>
+                    `;
+                } else if (msg.message_type === 'document') {
+                    content = `
+                        <div class="message-file">
+                            <div style="font-size: 40px;">📄</div>
+                            <p><strong>${msg.file_name}</strong></p>
+                            <button class="download-btn" onclick="window.open('../${msg.file_path}', '_blank')" style="padding: 5px 10px; background: #0084ff; color: white; border: none; border-radius: 4px; cursor: pointer;">Download</button>
+                            ${msg.message !== '[document]' ? `<p>${msg.message}</p>` : ''}
+                        </div>
+                    `;
                 } else {
-                    // Single tick for sent
-                    statusIcon = `
-                        <div class="status-ticks">
-                            <svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </div>`;
+                    content = `<p>${msg.message}</p>`;
                 }
-            }
 
-            msgDiv.innerHTML = `
-                ${content}
-                <span class="time">${new Date(msg.created_at).toLocaleTimeString()} ${statusIcon}</span>
-            `;
-            container.appendChild(msgDiv);
-        });
-        container.scrollTop = container.scrollHeight;
-    } else if (data.success && data.messages.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No messages yet. Start the conversation!</p>';
-    }
+                // Add status ticks for sent messages
+                let statusIcon = '';
+                if (isSent) {
+                    const tickColor = msg.is_read ? 'tick read' : 'tick';
+                    if (msg.is_read || msg.is_delivered) {
+                        // Double tick for delivered and read
+                        statusIcon = `
+                            <div class="status-ticks">
+                                <svg class="${tickColor}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                <svg class="${tickColor}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: -10px;">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>`;
+                    } else {
+                        // Single tick for sent
+                        statusIcon = `
+                            <div class="status-ticks">
+                                <svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>`;
+                    }
+                }
+
+                msgDiv.innerHTML = `
+                    ${content}
+                    <span class="time">${new Date(msg.created_at).toLocaleTimeString()} ${statusIcon}</span>
+                `;
+                container.appendChild(msgDiv);
+            });
+            container.scrollTop = container.scrollHeight;
+        } else if (data.success && data.messages.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No messages yet. Start the conversation!</p>';
+        }
     } catch (error) {
         console.error('Load messages error:', error);
     }

@@ -94,4 +94,3 @@ if ($action === 'delete_message_request_notification') {
         echo json_encode(['success' => false, 'message' => 'Failed to delete notification']);
     }
 }
-?>

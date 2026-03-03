@@ -187,4 +187,3 @@ if ($action === 'get_stats') {
 
     echo json_encode(['success' => true, 'stats' => $stats]);
 }
-?>

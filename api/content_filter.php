@@ -139,4 +139,3 @@ class ContentFilter {
         return $censored;
     }
 }
-?>

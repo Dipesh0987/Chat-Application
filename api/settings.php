@@ -257,4 +257,3 @@ if ($action === 'update_password') {
         echo json_encode(['success' => false, 'message' => 'Failed to update password']);
     }
 }
-?>

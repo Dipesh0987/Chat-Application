@@ -124,4 +124,3 @@ if ($action === 'upload_file') {
         echo json_encode(['success' => false, 'message' => 'Failed to upload file']);
     }
 }
-?>

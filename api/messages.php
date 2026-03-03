@@ -224,8 +224,6 @@ if ($action === 'get_media') {
 
     echo json_encode(['success' => true, 'media' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
 }
-?>
-
 
 if ($action === 'clear_chat') {
     $other_user_id = $_POST['user_id'] ?? 0;

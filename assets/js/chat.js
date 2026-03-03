@@ -107,12 +107,15 @@ async function loadChats() {
                 ? `<span class="unread-badge">${chat.unread_count}</span>`
                 : '';
 
-            const onlineStatus = chat.is_online ?
-                `<span class="online-status online" title="${chat.status_text}"></span>` :
-                `<span class="online-status offline" title="${chat.status_text}"></span>`;
+            // Show time next to status dot (only if not currently online and has time info)
+            let statusTime = '';
+            if (!chat.is_online && chat.status_text && chat.status_text !== 'Offline' && chat.status_text !== 'Online') {
+                statusTime = `<span class="status-time">${chat.status_text}</span>`;
+            }
 
-            // Debug: Log the status info
-            console.log(`User: ${chat.username}, is_online: ${chat.is_online}, status_text: ${chat.status_text}, ago_text: ${chat.ago_text}`);
+            const onlineStatus = chat.is_online ?
+                `<span class="online-status online"></span>` :
+                `<span class="online-status offline"></span>`;
 
             // Truncate long messages intelligently
             let displayMessage = chat.last_message || 'No messages yet';
@@ -138,10 +141,9 @@ async function loadChats() {
 
             chatItem.innerHTML = `
                 <div class="chat-item-header">
-                    <strong>${chat.username} ${onlineStatus}</strong>
+                    <strong>${chat.username} ${onlineStatus}${statusTime}</strong>
                 </div>
                 <p>${displayMessage}</p>
-                <div class="last-seen-text">${chat.status_text}</div>
                 ${unreadBadge}
             `;
             chatItem.addEventListener('click', () => openChat(chat.user_id, chat.username));
@@ -165,14 +167,18 @@ async function loadFriends() {
                 const friendItem = document.createElement('div');
                 friendItem.className = 'friend-item';
 
+                let statusTime = '';
+                if (!friend.is_online && friend.status_text && friend.status_text !== 'Offline' && friend.status_text !== 'Online') {
+                    statusTime = `<span class="status-time">${friend.status_text}</span>`;
+                }
+
                 const onlineStatus = friend.is_online ?
-                    `<span class="online-status online" title="${friend.status_text || 'Online'}"></span>` :
-                    `<span class="online-status offline" title="${friend.status_text || 'Offline'}"></span>`;
+                    `<span class="online-status online"></span>` :
+                    `<span class="online-status offline"></span>`;
 
                 friendItem.innerHTML = `
                     <div class="friend-info">
-                        <span>${friend.username} ${onlineStatus}</span>
-                        <div class="last-seen-text">${friend.status_text}</div>
+                        <span>${friend.username} ${onlineStatus}${statusTime}</span>
                     </div>
                     <button class="message-btn" onclick="openChat(${friend.id}, '${friend.username}')">Message</button>
                 `;
@@ -225,6 +231,10 @@ async function loadFriendRequestsInFriendsTab() {
 
 function openChat(userId, username) {
     currentChatUser = userId;
+    
+    // Update sidebar username immediately
+    document.getElementById('infoUserName').textContent = username;
+    
     document.getElementById('chatHeader').innerHTML = `
         <div class="chat-header-info">
             <button class="back-btn-mobile" id="mobileBackBtn">
@@ -281,20 +291,24 @@ async function updateHeaderStatus(userId) {
         const statusDot = document.getElementById('headerOnlineStatus');
         if (statusDot) {
             statusDot.className = data.user.is_online ? 'online-status online' : 'online-status offline';
-            statusDot.title = data.user.ago_text || data.user.status_text;
-
-            // Show status text in header
+            
+            // Show time next to dot (only if not online and not offline and has time)
             let statusTextElem = document.getElementById('headerStatusText');
             if (!statusTextElem) {
-                statusTextElem = document.createElement('small');
+                statusTextElem = document.createElement('span');
                 statusTextElem.id = 'headerStatusText';
-                statusTextElem.style.display = 'block';
-                statusTextElem.style.fontSize = '0.75rem';
-                statusTextElem.style.color = '#666';
-                statusTextElem.style.fontWeight = 'normal';
-                document.querySelector('.chat-header-info strong').appendChild(statusTextElem);
+                statusTextElem.className = 'status-time';
+                statusDot.after(statusTextElem);
             }
-            statusTextElem.textContent = data.user.ago_text || data.user.status_text;
+            
+            // Only show time if user is not currently online and not completely offline
+            if (!data.user.is_online && data.user.status_text && 
+                data.user.status_text !== 'Offline' && data.user.status_text !== 'Online') {
+                statusTextElem.textContent = data.user.status_text;
+                statusTextElem.style.display = 'inline';
+            } else {
+                statusTextElem.style.display = 'none';
+            }
         }
     }
 }
@@ -302,17 +316,18 @@ async function updateHeaderStatus(userId) {
 async function loadMessages() {
     if (!currentChatUser) return;
 
-    const response = await fetch(`../api/messages.php?action=get&user_id=${currentChatUser}`);
-    const data = await response.json();
+    try {
+        const response = await fetch(`../api/messages.php?action=get&user_id=${currentChatUser}`);
+        const data = await response.json();
 
-    const container = document.getElementById('messagesContainer');
-    container.innerHTML = '';
+        const container = document.getElementById('messagesContainer');
+        container.innerHTML = '';
 
-    if (data.success && data.messages.length > 0) {
-        data.messages.forEach(msg => {
-            const msgDiv = document.createElement('div');
-            const isSent = msg.sender_id != currentChatUser;
-            msgDiv.className = isSent ? 'message sent' : 'message received';
+        if (data.success && data.messages.length > 0) {
+            data.messages.forEach(msg => {
+                const msgDiv = document.createElement('div');
+                const isSent = msg.sender_id != currentChatUser;
+                msgDiv.className = isSent ? 'message sent' : 'message received';
 
             let content = '';
 
@@ -379,6 +394,11 @@ async function loadMessages() {
             container.appendChild(msgDiv);
         });
         container.scrollTop = container.scrollHeight;
+    } else if (data.success && data.messages.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No messages yet. Start the conversation!</p>';
+    }
+    } catch (error) {
+        console.error('Load messages error:', error);
     }
 }
 
@@ -861,11 +881,136 @@ function toggleChatInfoSidebar() {
     sidebar.classList.toggle('hidden');
 
     if (!sidebar.classList.contains('hidden') && currentChatUser) {
+        console.log('Loading chat media for user:', currentChatUser); // Debug
         loadChatMedia(currentChatUser);
+        attachChatActionListeners();
+    } else if (!sidebar.classList.contains('hidden') && !currentChatUser) {
+        console.error('No current chat user selected!'); // Debug
+    }
+}
+
+function attachChatActionListeners() {
+    document.getElementById('clearChatBtn').onclick = clearChat;
+    document.getElementById('blockUserBtn').onclick = blockUser;
+    document.getElementById('reportUserBtn').onclick = reportUser;
+    document.getElementById('deleteChatBtn').onclick = deleteChat;
+}
+
+async function clearChat() {
+    if (!currentChatUser) return;
+    
+    const confirmed = await dialog.confirm('Clear all messages in this chat? This cannot be undone.');
+    if (!confirmed) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'clear_chat');
+    formData.append('user_id', currentChatUser);
+    
+    try {
+        const response = await fetch('../api/messages.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            dialog.success('Chat cleared successfully');
+            loadMessages();
+            loadChats(); // Refresh chat list
+            toggleChatInfoSidebar();
+        } else {
+            dialog.error('Failed to clear chat');
+        }
+    } catch (error) {
+        console.error('Clear chat error:', error);
+        dialog.error('Failed to clear chat');
+    }
+}
+
+async function blockUser() {
+    if (!currentChatUser) return;
+    
+    const confirmed = await dialog.confirm('Block this user? They will not be able to send you messages.');
+    if (!confirmed) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'block_user');
+    formData.append('user_id', currentChatUser);
+    
+    const response = await fetch('../api/users.php', {
+        method: 'POST',
+        body: formData
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+        dialog.success('User blocked successfully');
+        toggleChatInfoSidebar();
+        currentChatUser = null;
+        document.getElementById('chatHeader').innerHTML = '<h3>Select a chat</h3>';
+        document.getElementById('messageInputArea').classList.add('hidden');
+        loadChats();
+    } else {
+        dialog.error(data.message || 'Failed to block user');
+    }
+}
+
+async function reportUser() {
+    if (!currentChatUser) return;
+    
+    const reason = prompt('Please provide a reason for reporting this user:');
+    if (!reason || reason.trim() === '') return;
+    
+    const formData = new FormData();
+    formData.append('action', 'report_user');
+    formData.append('user_id', currentChatUser);
+    formData.append('reason', reason);
+    
+    const response = await fetch('../api/users.php', {
+        method: 'POST',
+        body: formData
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+        dialog.success('User reported successfully. Admin will review your report.');
+        toggleChatInfoSidebar();
+    } else {
+        dialog.error(data.message || 'Failed to report user');
+    }
+}
+
+async function deleteChat() {
+    if (!currentChatUser) return;
+    
+    const confirmed = await dialog.confirm('Delete this entire chat? This will remove all messages and cannot be undone.');
+    if (!confirmed) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'delete_chat');
+    formData.append('user_id', currentChatUser);
+    
+    const response = await fetch('../api/messages.php', {
+        method: 'POST',
+        body: formData
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+        dialog.success('Chat deleted successfully');
+        toggleChatInfoSidebar();
+        currentChatUser = null;
+        document.getElementById('chatHeader').innerHTML = '<h3>Select a chat</h3>';
+        document.getElementById('messageInputArea').classList.add('hidden');
+        loadChats();
+    } else {
+        dialog.error('Failed to delete chat');
     }
 }
 
 async function loadChatMedia(userId) {
+    console.log('loadChatMedia called with userId:', userId); // Debug
+    
     const response = await fetch(`../api/messages.php?action=get_media&user_id=${userId}`);
     const data = await response.json();
 
@@ -882,7 +1027,10 @@ async function loadChatMedia(userId) {
         const userResponse = await fetch(`../api/users.php?action=get_user_info&user_id=${userId}`);
         const userData = await userResponse.json();
 
+        console.log('User data received:', userData); // Debug
+
         if (userData.success && userData.user) {
+            console.log('Setting username to:', userData.user.username); // Debug
             document.getElementById('infoUserName').textContent = userData.user.username;
             if (userData.user.profile_image) {
                 document.getElementById('infoUserProfileImg').src = '../' + userData.user.profile_image;

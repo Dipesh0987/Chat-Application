@@ -307,3 +307,55 @@ if ($action === 'delete_message_request') {
         echo json_encode(['success' => false, 'message' => 'Failed to delete']);
     }
 }
+
+
+if ($action === 'block_user') {
+    $user_id = $_SESSION['user_id'];
+    $blocked_user_id = $_POST['user_id'] ?? 0;
+    
+    // Check if already blocked
+    $check = "SELECT * FROM blocked_users WHERE user_id = :user_id AND blocked_user_id = :blocked_user_id";
+    $stmt_check = $db->prepare($check);
+    $stmt_check->bindParam(':user_id', $user_id);
+    $stmt_check->bindParam(':blocked_user_id', $blocked_user_id);
+    $stmt_check->execute();
+    
+    if ($stmt_check->rowCount() > 0) {
+        echo json_encode(['success' => false, 'message' => 'User already blocked']);
+        exit();
+    }
+    
+    $query = "INSERT INTO blocked_users (user_id, blocked_user_id) VALUES (:user_id, :blocked_user_id)";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':user_id', $user_id);
+    $stmt->bindParam(':blocked_user_id', $blocked_user_id);
+    
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to block user']);
+    }
+}
+
+if ($action === 'report_user') {
+    $user_id = $_SESSION['user_id'];
+    $reported_user_id = $_POST['user_id'] ?? 0;
+    $reason = trim($_POST['reason'] ?? '');
+    
+    if (empty($reason)) {
+        echo json_encode(['success' => false, 'message' => 'Please provide a reason']);
+        exit();
+    }
+    
+    $query = "INSERT INTO user_reports (reporter_id, reported_user_id, reason) VALUES (:reporter_id, :reported_user_id, :reason)";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':reporter_id', $user_id);
+    $stmt->bindParam(':reported_user_id', $reported_user_id);
+    $stmt->bindParam(':reason', $reason);
+    
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to report user']);
+    }
+}

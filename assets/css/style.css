@@ -192,10 +192,10 @@ body {
     font-weight: 500;
 }
 
-.last-seen-text {
+.status-time {
     font-size: 11px;
     color: #999;
-    margin-top: 3px;
+    margin-left: 5px;
     font-weight: normal;
 }
 
@@ -1183,6 +1183,43 @@ body {
 
 .info-section {
     padding: 20px;
+}
+
+.chat-actions-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.chat-action-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 15px;
+    background: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+    font-size: 15px;
+    text-align: left;
+}
+
+.chat-action-item:hover {
+    background: #2a2a2a;
+}
+
+.chat-action-item.danger {
+    color: #ff4444;
+}
+
+.chat-action-item.danger:hover {
+    background: rgba(255, 68, 68, 0.1);
+}
+
+.chat-action-item svg {
+    flex-shrink: 0;
 }
 
 .info-section-header {

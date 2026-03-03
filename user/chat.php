@@ -67,7 +67,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['is_admin']) {
                 </button>
             </div>
             <div class="messages" id="messagesContainer"></div>
-            <div class="file-upload-area hidden" id="fileUploadArea">B
+            <div class="file-upload-area hidden" id="fileUploadArea">
                 <div class="file-preview" id="filePreview"></div>
                 <button class="remove-file-btn" onclick="removeFile()">Remove</button>
             </div>
@@ -109,6 +109,42 @@ if (!isset($_SESSION['user_id']) || $_SESSION['is_admin']) {
                     class="profile-img-large">
                 <h2 id="infoUserName">Name</h2>
             </div>
+            
+            <!-- Chat Actions Menu -->
+            <div class="info-section">
+                <div class="chat-actions-menu">
+                    <button class="chat-action-item" id="clearChatBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                        </svg>
+                        <span>Clear chat</span>
+                    </button>
+                    <button class="chat-action-item" id="blockUserBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                        </svg>
+                        <span>Block user</span>
+                    </button>
+                    <button class="chat-action-item" id="reportUserBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        <span>Report user</span>
+                    </button>
+                    <button class="chat-action-item danger" id="deleteChatBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        <span>Delete chat</span>
+                    </button>
+                </div>
+            </div>
+            
             <div class="info-section">
                 <div class="info-section-header">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

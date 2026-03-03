@@ -392,3 +392,20 @@ if ($action === 'report_user') {
         echo json_encode(['success' => false, 'message' => 'Failed to report user']);
     }
 }
+if ($action === 'remove_friend') {
+    $user_id = $_SESSION['user_id'];
+    $friend_id = $_POST['user_id'] ?? 0;
+
+    $query = "DELETE FROM friends WHERE (user_id = :user_id AND friend_id = :friend_id) OR (user_id = :friend_id2 AND friend_id = :user_id2)";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':user_id', $user_id);
+    $stmt->bindParam(':friend_id', $friend_id);
+    $stmt->bindParam(':user_id2', $user_id);
+    $stmt->bindParam(':friend_id2', $friend_id);
+
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true, 'message' => 'Friend removed']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to remove friend']);
+    }
+}

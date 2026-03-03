@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('addFriendBtn').addEventListener('click', showAddFriendModal);
     document.getElementById('sendBtn').addEventListener('click', sendMessage);
 
-    document.getElementById('toggleInfoBtn').addEventListener('click', toggleChatInfoSidebar);
     document.getElementById('closeInfoBtn').addEventListener('click', toggleChatInfoSidebar);
 
     document.getElementById('messageInput').addEventListener('keypress', function (e) {
@@ -180,7 +179,15 @@ async function loadFriends() {
                     <div class="friend-info">
                         <span>${friend.username} ${onlineStatus}${statusTime}</span>
                     </div>
-                    <button class="message-btn" onclick="openChat(${friend.id}, '${friend.username}')">Message</button>
+                    <div class="friend-actions">
+                        <button class="message-btn" onclick="openChat(${friend.id}, '${friend.username}')">Message</button>
+                        <button class="reject-btn" style="padding: 8px;" onclick="deleteFriend(${friend.id}, '${friend.username}')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
                 `;
                 friendList.appendChild(friendItem);
             });
@@ -259,13 +266,7 @@ function openChat(userId, username) {
                 <span id="headerOnlineStatus" class="online-status offline"></span>
             </strong>
         </div>
-        <button id="toggleInfoBtn" class="icon-btn" title="Chat Info">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
-        </button>
+        </div>
     `;
 
     updateHeaderStatus(userId);
@@ -281,8 +282,6 @@ function openChat(userId, username) {
     // Activate chat area for mobile
     document.querySelector('.chat-area').classList.add('active');
 
-    // Re-add event listener to the new button
-    document.getElementById('toggleInfoBtn').addEventListener('click', toggleChatInfoSidebar);
 
     document.getElementById('messageInputArea').classList.remove('hidden');
 
@@ -1116,7 +1115,7 @@ async function loadChatMedia(userId) {
             if (userData.user.profile_image) {
                 document.getElementById('infoUserProfileImg').src = '../' + userData.user.profile_image;
             } else {
-                document.getElementById('infoUserProfileImg').src = '../assets/images/default-avatar.svg';
+                document.getElementById('infoUserProfileImg').src = '../assets/images/default-avatar.png';
             }
         }
 
@@ -1328,6 +1327,34 @@ async function deleteAccount(password) {
 
 function closeModal() {
     document.getElementById('modal').classList.add('hidden');
+}
+
+async function deleteFriend(friendId, username) {
+    const confirmed = await dialog.confirm(`Are you sure you want to remove ${username} from your friends?`);
+    if (!confirmed) return;
+
+    const formData = new FormData();
+    formData.append('action', 'remove_friend');
+    formData.append('user_id', friendId);
+
+    try {
+        const response = await fetch('../api/users.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            dialog.success('Friend removed successfully');
+            loadFriends();
+            loadChats(); // Refresh chat list if they were chatting
+        } else {
+            dialog.error(data.message || 'Failed to remove friend');
+        }
+    } catch (error) {
+        console.error('Delete friend error:', error);
+        dialog.error('Failed to remove friend');
+    }
 }
 
 async function logout() {

@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('addFriendBtn').addEventListener('click', showAddFriendModal);
     document.getElementById('sendBtn').addEventListener('click', sendMessage);
 
+    document.getElementById('toggleInfoBtn').addEventListener('click', toggleChatInfoSidebar);
     document.getElementById('closeInfoBtn').addEventListener('click', toggleChatInfoSidebar);
 
     document.getElementById('messageInput').addEventListener('keypress', function (e) {
@@ -266,9 +267,17 @@ function openChat(userId, username) {
                 <span id="headerOnlineStatus" class="online-status offline"></span>
             </strong>
         </div>
-        </div>
+        <button id="toggleInfoBtn" class="icon-btn" title="Chat Info">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
     `;
 
+    const toggleBtn = document.getElementById('toggleInfoBtn');
+    if (toggleBtn) toggleBtn.classList.remove('hidden');
     updateHeaderStatus(userId);
 
     // Add mobile back button listener
@@ -281,6 +290,9 @@ function openChat(userId, username) {
 
     // Activate chat area for mobile
     document.querySelector('.chat-area').classList.add('active');
+
+    // Re-add event listener to the new button
+    document.getElementById('toggleInfoBtn').addEventListener('click', toggleChatInfoSidebar);
 
 
     document.getElementById('messageInputArea').classList.remove('hidden');

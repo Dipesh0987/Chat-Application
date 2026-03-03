@@ -232,6 +232,17 @@ async function loadFriendRequestsInFriendsTab() {
 function openChat(userId, username) {
     currentChatUser = userId;
 
+    // Manage active state in sidebar
+    document.querySelectorAll('.chat-item').forEach(item => {
+        item.classList.remove('active');
+        // Check if the strong tag's text content (which includes username and status) contains the current username
+        // This is a simple way to identify the chat item for the current user.
+        // A more robust solution might involve data attributes or unique IDs.
+        if (item.querySelector('strong') && item.querySelector('strong').textContent.includes(username)) {
+            item.classList.add('active');
+        }
+    });
+
     // Update sidebar username immediately
     document.getElementById('infoUserName').textContent = username;
 

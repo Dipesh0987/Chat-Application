@@ -229,13 +229,22 @@ body {
     border-radius: 10px;
 }
 
-.chat-item,
-.friend-item {
+.chat-item {
+    position: relative;
     padding: 15px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     cursor: pointer;
     transition: all 0.2s ease;
     border-left: 3px solid transparent;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
 }
 
 .chat-item:hover {
@@ -248,21 +257,10 @@ body {
     border-left: 3px solid var(--neon-cyan);
 }
 
-.chat-item.has-unread {
-    background: rgba(0, 243, 255, 0.02);
-}
-
 .chat-item-header strong {
     color: var(--text-primary);
     font-family: var(--font-body);
     font-weight: 600;
-}
-
-.chat-item p {
-    margin: 5px 0 0 0;
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-family: var(--font-mono);
 }
 
 .unread-badge {
@@ -270,6 +268,14 @@ body {
     color: var(--bg-dark);
     font-family: var(--font-header);
     box-shadow: 0 0 10px var(--neon-cyan);
+    padding: 2px 8px;
+    /* Refined padding */
+    border-radius: 12px;
+    font-size: 11px;
+    min-width: 20px;
+    text-align: center;
+    font-weight: 800;
+    margin-left: 10px;
 }
 
 .chat-area {
@@ -682,64 +688,81 @@ body {
     box-shadow: 0 0 10px var(--neon-magenta);
 }
 
-.notification-badge.hidden {
-    display: none;
-}
-
-.request-item {
-    padding: 15px;
-    border-bottom: 1px solid #f0f0f0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.request-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.accept-btn {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.reject-btn {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.notification-list {
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.notification-item {
+.settings-container input[type="text"],
+.settings-container input[type="email"],
+.settings-container input[type="password"],
+.auth-box input,
+.modal-content input {
+    width: 100%;
     padding: 12px;
-    border-bottom: 1px solid #f0f0f0;
-    background: #e3f2fd;
+    margin-bottom: 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    outline: none;
+    transition: all 0.3s ease;
 }
 
-.notification-item.read {
-    background: white;
-    opacity: 0.7;
+.settings-container input:focus,
+.modal-content input:focus {
+    border-color: var(--neon-cyan);
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
 }
 
-.notification-item p {
-    margin-bottom: 5px;
+.settings-container label,
+.modal-content label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--neon-cyan);
+    font-family: var(--font-header);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-.notification-item .time {
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-family: var(--font-header);
+    text-transform: uppercase;
     font-size: 11px;
-    color: #999;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid transparent;
+}
+
+.btn-primary {
+    background: transparent;
+    color: var(--neon-cyan);
+    border-color: var(--neon-cyan);
+}
+
+.btn-primary:hover {
+    background: var(--neon-cyan);
+    color: var(--bg-dark);
+    box-shadow: 0 0 15px var(--neon-cyan);
+}
+
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    color: var(--neon-cyan);
+    font-family: var(--font-header);
+    text-transform: uppercase;
+    font-size: 11px;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+.back-btn:hover {
+    text-shadow: 0 0 8px var(--neon-cyan);
 }
 
 .chat-info-sidebar {
@@ -1251,8 +1274,9 @@ body {
     border-radius: 50%;
     object-fit: cover;
     margin-bottom: 15px;
-    background: #333;
-    border: 3px solid #444;
+    background: var(--bg-dark);
+    border: 3px solid var(--neon-cyan);
+    box-shadow: 0 0 15px var(--neon-cyan);
 }
 
 .info-user-profile h2 {
@@ -1314,10 +1338,13 @@ body {
 
 .count-badge {
     margin-left: auto;
-    background: #333;
+    background: var(--bg-panel);
+    border: 1px solid var(--neon-cyan);
+    color: var(--neon-cyan);
     padding: 2px 8px;
     border-radius: 10px;
     font-size: 0.8rem;
+    box-shadow: 0 0 5px var(--neon-cyan);
 }
 
 .media-grid {
@@ -1503,7 +1530,7 @@ body {
 
 .last-seen-text {
     font-size: 0.7rem;
-    color: #888;
+    color: var(--text-secondary);
     margin-top: 2px;
 }
 
@@ -1556,6 +1583,32 @@ body {
 .image-lightbox .close-lightbox:hover {
     background: rgba(255, 255, 255, 0.2);
     transform: rotate(90deg);
+}
+
+/* Authentication Links & Secondary Text */
+.auth-box p,
+.auth-box span,
+.modal-content p,
+.modal-content span {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.auth-box a,
+.modal-content a,
+#registerLink,
+#loginLink {
+    color: var(--neon-cyan);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s;
+    text-shadow: 0 0 5px rgba(0, 243, 255, 0.4);
+}
+
+.auth-box a:hover,
+.modal-content a:hover {
+    text-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan);
+    color: white;
 }
 
 /* Global Scrollbars */

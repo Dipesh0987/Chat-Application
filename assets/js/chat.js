@@ -142,9 +142,9 @@ async function loadChats() {
             chatItem.innerHTML = `
                 <div class="chat-item-header">
                     <strong>${chat.username} ${onlineStatus}${statusTime}</strong>
+                    ${unreadBadge}
                 </div>
                 <p>${displayMessage}</p>
-                ${unreadBadge}
             `;
             chatItem.addEventListener('click', () => openChat(chat.user_id, chat.username));
             chatList.appendChild(chatItem);
@@ -1420,10 +1420,10 @@ function showFilePreview(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
             preview.innerHTML = `
-                <img src="${e.target.result}" alt="Preview" style="max-width: 60px; max-height: 60px; border-radius: 4px;">
+                <img src="${e.target.result}" alt="Preview" style="max-width: 60px; max-height: 60px; border-radius: 4px; border: 1px solid var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan);">
                 <div class="file-info">
-                    <div class="file-name">${file.name}</div>
-                    <div class="file-size">${fileSize} MB</div>
+                    <div class="file-name" style="color: var(--neon-cyan); font-family: var(--font-header); font-size: 11px;">${file.name}</div>
+                    <div class="file-size" style="color: white; font-family: var(--font-mono); font-size: 10px;">${fileSize} MB</div>
                 </div>
             `;
         };
@@ -1431,10 +1431,10 @@ function showFilePreview(file) {
     } else {
         const icon = file.type.startsWith('video/') ? '🎥' : '📄';
         preview.innerHTML = `
-            <div style="font-size: 40px;">${icon}</div>
+            <div style="font-size: 40px; color: var(--neon-cyan); text-shadow: 0 0 10px var(--neon-cyan);">${icon}</div>
             <div class="file-info">
-                <div class="file-name">${file.name}</div>
-                <div class="file-size">${fileSize} MB</div>
+                <div class="file-name" style="color: var(--neon-cyan); font-family: var(--font-header); font-size: 11px;">${file.name}</div>
+                <div class="file-size" style="color: white; font-family: var(--font-mono); font-size: 10px;">${fileSize} MB</div>
             </div>
         `;
     }

@@ -128,32 +128,73 @@ async function loadChats() {
 }
 
 async function loadFriends() {
-    const response = await fetch('../api/users.php?action=get_friends');
+    try {
+        const response = await fetch('../api/users.php?action=get_friends');
+        const data = await response.json();
+
+        const friendList = document.getElementById('friendList');
+        friendList.innerHTML = '';
+
+        if (data.success && data.friends && data.friends.length > 0) {
+            data.friends.forEach(friend => {
+                const friendItem = document.createElement('div');
+                friendItem.className = 'friend-item';
+
+                const onlineStatus = friend.is_online ?
+                    `<span class="online-status online" title="${friend.status_text || 'Online'}"></span>` :
+                    `<span class="online-status offline" title="${friend.status_text || 'Offline'}"></span>`;
+
+                friendItem.innerHTML = `
+                    <div class="friend-info">
+                        <span>${friend.username} ${onlineStatus}</span>
+                        ${!friend.is_online && friend.status_text && friend.status_text !== 'Offline' ? `<div class="last-seen-text">${friend.status_text}</div>` : ''}
+                    </div>
+                    <button class="message-btn" onclick="openChat(${friend.id}, '${friend.username}')">Message</button>
+                `;
+                friendList.appendChild(friendItem);
+            });
+            
+            // Load friend requests below friends list
+            await loadFriendRequestsInFriendsTab();
+        } else {
+            friendList.innerHTML = '<p class="empty-state">No friends yet</p>';
+            
+            // Still load friend requests even if no friends
+            await loadFriendRequestsInFriendsTab();
+        }
+    } catch (error) {
+        console.error('Error loading friends:', error);
+        const friendList = document.getElementById('friendList');
+        friendList.innerHTML = '<p class="empty-state">No friends yet. Try adding some!</p>';
+    }
+}
+
+async function loadFriendRequestsInFriendsTab() {
+    const response = await fetch('../api/users.php?action=get_friend_requests');
     const data = await response.json();
-
+    
     const friendList = document.getElementById('friendList');
-    friendList.innerHTML = '';
-
-    if (data.success && data.friends.length > 0) {
-        data.friends.forEach(friend => {
-            const friendItem = document.createElement('div');
-            friendItem.className = 'friend-item';
-
-            const onlineStatus = friend.is_online ?
-                `<span class="online-status online" title="${friend.status_text}"></span>` :
-                `<span class="online-status offline" title="${friend.status_text}"></span>`;
-
-            friendItem.innerHTML = `
-                <div class="friend-info">
-                    <span>${friend.username} ${onlineStatus}</span>
-                    ${!friend.is_online && friend.status_text !== 'Offline' ? `<div class="last-seen-text">${friend.status_text}</div>` : ''}
+    
+    if (data.success && data.requests.length > 0) {
+        // Add friend requests section
+        const requestsSection = document.createElement('div');
+        requestsSection.className = 'friend-requests-section';
+        requestsSection.innerHTML = '<h4>Friend Requests</h4>';
+        
+        data.requests.forEach(req => {
+            const reqItem = document.createElement('div');
+            reqItem.className = 'request-item';
+            reqItem.innerHTML = `
+                <span>${req.username}</span>
+                <div class="request-actions">
+                    <button class="accept-btn" onclick="acceptFriendRequest(${req.user_id})">Accept</button>
+                    <button class="reject-btn" onclick="rejectFriendRequest(${req.user_id})">Reject</button>
                 </div>
-                <button class="message-btn" onclick="openChat(${friend.id}, '${friend.username}')">Message</button>
             `;
-            friendList.appendChild(friendItem);
+            requestsSection.appendChild(reqItem);
         });
-    } else {
-        friendList.innerHTML = '<p class="empty-state">No friends yet</p>';
+        
+        friendList.appendChild(requestsSection);
     }
 }
 
@@ -254,7 +295,7 @@ async function loadMessages() {
             if (msg.message_type === 'image') {
                 content = `
                     <div class="message-file">
-                        <img src="../${msg.file_path}" alt="${msg.file_name}" onclick="window.open('../${msg.file_path}', '_blank')" style="max-width: 250px; max-height: 250px; cursor: pointer; border-radius: 8px;">
+                        <img src="../${msg.file_path}" alt="${msg.file_name}" onclick="openImageLightbox('../${msg.file_path}')" style="max-width: 250px; max-height: 250px; cursor: pointer; border-radius: 8px;">
                         ${msg.message !== '[image]' ? `<p>${msg.message}</p>` : ''}
                     </div>
                 `;
@@ -423,33 +464,63 @@ function showNewChatModal() {
 function showAddFriendModal() {
     document.getElementById('modalTitle').textContent = 'Add Friend';
     document.getElementById('modalBody').innerHTML = `
-        <input type="text" id="searchFriend" placeholder="Search users...">
-        <div id="friendSearchResults"></div>
+        <input type="text" id="searchFriend" placeholder="Search users..." style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px;">
+        <div id="friendSearchResults" style="max-height: 300px; overflow-y: auto;"></div>
     `;
     document.getElementById('modal').classList.remove('hidden');
 
-    document.getElementById('searchFriend').addEventListener('input', async function (e) {
-        const search = e.target.value;
-        if (search.length < 2) return;
+    const searchInput = document.getElementById('searchFriend');
+    const results = document.getElementById('friendSearchResults');
+    
+    searchInput.addEventListener('input', async function (e) {
+        const search = e.target.value.trim();
+        
+        if (search.length < 2) {
+            results.innerHTML = '<p style="padding: 10px; color: #999; text-align: center;">Type at least 2 characters to search</p>';
+            return;
+        }
 
-        const response = await fetch(`../api/users.php?action=search&search=${search}`);
-        const data = await response.json();
+        results.innerHTML = '<p style="padding: 10px; color: #999; text-align: center;">Searching...</p>';
 
-        const results = document.getElementById('friendSearchResults');
-        results.innerHTML = '';
+        try {
+            const response = await fetch(`../api/users.php?action=search&search=${encodeURIComponent(search)}`);
+            
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            
+            const data = await response.json();
 
-        if (data.success && data.users.length > 0) {
-            data.users.forEach(user => {
-                const userDiv = document.createElement('div');
-                userDiv.className = 'user-result';
-                userDiv.innerHTML = `
-                    <span>${user.username}</span>
-                    <button onclick="addFriend(${user.id})">Add</button>
-                `;
-                results.appendChild(userDiv);
-            });
+            results.innerHTML = '';
+
+            if (data.success && data.users && data.users.length > 0) {
+                data.users.forEach(user => {
+                    const userDiv = document.createElement('div');
+                    userDiv.className = 'user-result';
+                    userDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; cursor: pointer;';
+                    userDiv.innerHTML = `
+                        <span style="font-weight: 500;">${user.username}</span>
+                        <button onclick="addFriend(${user.id})" style="background: #0084ff; color: white; border: none; padding: 6px 16px; border-radius: 4px; cursor: pointer;">Add</button>
+                    `;
+                    userDiv.addEventListener('mouseenter', function() {
+                        this.style.background = '#f5f5f5';
+                    });
+                    userDiv.addEventListener('mouseleave', function() {
+                        this.style.background = 'white';
+                    });
+                    results.appendChild(userDiv);
+                });
+            } else {
+                results.innerHTML = '<p style="padding: 20px; color: #666; text-align: center;">No users found</p>';
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+            results.innerHTML = '<p style="padding: 20px; color: #666; text-align: center;">Error searching. Please try again.</p>';
         }
     });
+    
+    // Focus on search input
+    setTimeout(() => searchInput.focus(), 100);
 }
 
 async function addFriend(friendId) {
@@ -457,40 +528,93 @@ async function addFriend(friendId) {
     formData.append('action', 'send_friend_request');
     formData.append('friend_id', friendId);
 
-    const response = await fetch('../api/users.php', {
-        method: 'POST',
-        body: formData
-    });
+    try {
+        const response = await fetch('../api/users.php', {
+            method: 'POST',
+            body: formData
+        });
 
-    const data = await response.json();
-    alert(data.message);
-    if (data.success) {
-        closeModal();
+        const data = await response.json();
+        
+        if (data.success) {
+            dialog.success(data.message || 'Friend request sent!');
+            closeModal();
+            loadFriends(); // Refresh friends list
+        } else {
+            dialog.error(data.message || 'Failed to send friend request');
+        }
+    } catch (error) {
+        console.error('Error adding friend:', error);
+        dialog.error('Failed to send friend request. Please try again.');
     }
 }
 
 async function loadFriendRequests() {
-    const response = await fetch('../api/users.php?action=get_friend_requests');
-    const data = await response.json();
-
     const requestList = document.getElementById('requestList');
-    requestList.innerHTML = '';
+    requestList.innerHTML = '<h3 style="padding: 15px; margin: 0;">Message Requests</h3>';
+    
+    // Load message requests (messages from non-friends)
+    const response = await fetch('../api/users.php?action=get_message_requests');
+    const data = await response.json();
 
     if (data.success && data.requests.length > 0) {
         data.requests.forEach(req => {
             const reqItem = document.createElement('div');
             reqItem.className = 'request-item';
+            
+            const onlineStatus = req.is_online ? 
+                '<span class="online-status online"></span>' : 
+                '<span class="online-status offline"></span>';
+            
             reqItem.innerHTML = `
-                <span>${req.username}</span>
+                <div class="request-info">
+                    <span>${req.username} ${onlineStatus}</span>
+                    <p class="request-message">${req.last_message}</p>
+                    <small>${new Date(req.created_at).toLocaleString()}</small>
+                </div>
                 <div class="request-actions">
-                    <button class="accept-btn" onclick="acceptFriendRequest(${req.user_id})">Accept</button>
-                    <button class="reject-btn" onclick="rejectFriendRequest(${req.user_id})">Reject</button>
+                    <button class="accept-btn" onclick="acceptMessageRequest(${req.user_id}, '${req.username}')">Accept</button>
+                    <button class="reject-btn" onclick="rejectMessageRequest(${req.user_id})">Delete</button>
                 </div>
             `;
             requestList.appendChild(reqItem);
         });
     } else {
-        requestList.innerHTML = '<p class="empty-state">No friend requests</p>';
+        requestList.innerHTML += '<p class="empty-state">No message requests</p>';
+    }
+}
+
+async function acceptMessageRequest(userId, username) {
+    // Accept means add as friend and open chat
+    const formData = new FormData();
+    formData.append('action', 'send_friend_request');
+    formData.append('friend_id', userId);
+    
+    await fetch('../api/users.php', {
+        method: 'POST',
+        body: formData
+    });
+    
+    // Open chat
+    openChat(userId, username);
+    loadFriendRequests();
+}
+
+async function rejectMessageRequest(userId) {
+    // Delete all messages from this user
+    const formData = new FormData();
+    formData.append('action', 'delete_message_request');
+    formData.append('user_id', userId);
+    
+    const response = await fetch('../api/users.php', {
+        method: 'POST',
+        body: formData
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+        dialog.success('Message request deleted');
+        loadFriendRequests();
     }
 }
 
@@ -1082,4 +1206,45 @@ function updateOnlineStatus(status) {
     }).catch(err => console.error('Failed to update status:', err));
 }
 
-console.log('✅ New features loaded: File Upload, Emoji Picker, Online Status, Dialog Boxes');
+// Image Lightbox Functions
+function openImageLightbox(imageSrc) {
+    const lightbox = document.getElementById('imageLightbox');
+    const lightboxImage = document.getElementById('lightboxImage');
+    lightboxImage.src = imageSrc;
+    lightbox.classList.add('active');
+}
+
+function closeImageLightbox() {
+    const lightbox = document.getElementById('imageLightbox');
+    lightbox.classList.remove('active');
+}
+
+// Initialize lightbox close handlers
+document.addEventListener('DOMContentLoaded', function() {
+    const lightbox = document.getElementById('imageLightbox');
+    const closeLightboxBtn = document.querySelector('.close-lightbox');
+    
+    if (closeLightboxBtn) {
+        closeLightboxBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeImageLightbox();
+        });
+    }
+    
+    if (lightbox) {
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox) {
+                closeImageLightbox();
+            }
+        });
+    }
+    
+    // ESC key to close lightbox
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeImageLightbox();
+        }
+    });
+});
+
+console.log('✅ New features loaded: File Upload, Emoji Picker, Online Status, Dialog Boxes, Image Lightbox');

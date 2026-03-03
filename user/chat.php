@@ -67,7 +67,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['is_admin']) {
                 </button>
             </div>
             <div class="messages" id="messagesContainer"></div>
-            <div class="file-upload-area hidden" id="fileUploadArea">
+            <div class="file-upload-area hidden" id="fileUploadArea">B
                 <div class="file-preview" id="filePreview"></div>
                 <button class="remove-file-btn" onclick="removeFile()">Remove</button>
             </div>
@@ -130,6 +130,12 @@ if (!isset($_SESSION['user_id']) || $_SESSION['is_admin']) {
             <h3 id="modalTitle"></h3>
             <div id="modalBody"></div>
         </div>
+    </div>
+
+    <!-- Image Lightbox -->
+    <div id="imageLightbox" class="image-lightbox">
+        <span class="close-lightbox">&times;</span>
+        <img id="lightboxImage" src="" alt="">
     </div>
 
     <script src="../assets/js/dialog.js"></script>

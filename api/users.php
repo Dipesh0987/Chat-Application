@@ -237,4 +237,59 @@ if ($action === 'get_user_info') {
     }
     echo json_encode(['success' => true, 'user' => $user]);
 }
-?>
+
+if ($action === 'get_message_requests') {
+    $user_id = $_SESSION['user_id'];
+    
+    // Get messages from users who are not friends
+    $query = "SELECT DISTINCT 
+              m.sender_id as user_id,
+              u.username,
+              u.is_online,
+              u.last_seen,
+              (SELECT message FROM messages 
+               WHERE sender_id = m.sender_id AND receiver_id = :user_id
+               ORDER BY created_at DESC LIMIT 1) as last_message,
+              (SELECT created_at FROM messages 
+               WHERE sender_id = m.sender_id AND receiver_id = :user_id2
+               ORDER BY created_at DESC LIMIT 1) as created_at
+              FROM messages m
+              JOIN users u ON m.sender_id = u.id
+              WHERE m.receiver_id = :user_id3
+              AND m.sender_id NOT IN (
+                  SELECT friend_id FROM friends 
+                  WHERE user_id = :user_id4 AND status = 'accepted'
+              )
+              AND m.sender_id NOT IN (
+                  SELECT user_id FROM friends 
+                  WHERE friend_id = :user_id5 AND status = 'accepted'
+              )
+              ORDER BY created_at DESC";
+    
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':user_id', $user_id);
+    $stmt->bindParam(':user_id2', $user_id);
+    $stmt->bindParam(':user_id3', $user_id);
+    $stmt->bindParam(':user_id4', $user_id);
+    $stmt->bindParam(':user_id5', $user_id);
+    $stmt->execute();
+    
+    echo json_encode(['success' => true, 'requests' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+}
+
+if ($action === 'delete_message_request') {
+    $user_id = $_SESSION['user_id'];
+    $sender_id = $_POST['user_id'] ?? 0;
+    
+    // Delete all messages from this sender
+    $query = "DELETE FROM messages WHERE sender_id = :sender_id AND receiver_id = :user_id";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':sender_id', $sender_id);
+    $stmt->bindParam(':user_id', $user_id);
+    
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true, 'message' => 'Message request deleted']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to delete']);
+    }
+}

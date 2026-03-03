@@ -24,6 +24,22 @@ if ($action === 'send') {
         exit();
     }
 
+    // Check if blocked (either way)
+    $check_block = "SELECT id FROM blocked_users 
+                    WHERE (user_id = :user_id AND blocked_user_id = :receiver_id) 
+                       OR (user_id = :receiver_id2 AND blocked_user_id = :user_id2)";
+    $stmt_block = $db->prepare($check_block);
+    $stmt_block->bindParam(':user_id', $user_id);
+    $stmt_block->bindParam(':receiver_id', $receiver_id);
+    $stmt_block->bindParam(':user_id2', $user_id);
+    $stmt_block->bindParam(':receiver_id2', $receiver_id);
+    $stmt_block->execute();
+
+    if ($stmt_block->rowCount() > 0) {
+        echo json_encode(['success' => false, 'message' => 'Message cannot be sent. You or the recipient has blocked the other.']);
+        exit();
+    }
+
     // Check for vulgar content
     $filter = new ContentFilter($db, $user_id);
     $check_result = $filter->checkMessage($message);
@@ -227,17 +243,17 @@ if ($action === 'get_media') {
 
 if ($action === 'clear_chat') {
     $other_user_id = $_POST['user_id'] ?? 0;
-    
+
     $query = "DELETE FROM messages 
               WHERE (sender_id = :user_id AND receiver_id = :other_user_id) 
                  OR (sender_id = :other_user_id2 AND receiver_id = :user_id2)";
-    
+
     $stmt = $db->prepare($query);
     $stmt->bindParam(':user_id', $user_id);
     $stmt->bindParam(':user_id2', $user_id);
     $stmt->bindParam(':other_user_id', $other_user_id);
     $stmt->bindParam(':other_user_id2', $other_user_id);
-    
+
     if ($stmt->execute()) {
         echo json_encode(['success' => true]);
     } else {
@@ -247,17 +263,17 @@ if ($action === 'clear_chat') {
 
 if ($action === 'delete_chat') {
     $other_user_id = $_POST['user_id'] ?? 0;
-    
+
     $query = "DELETE FROM messages 
               WHERE (sender_id = :user_id AND receiver_id = :other_user_id) 
                  OR (sender_id = :other_user_id2 AND receiver_id = :user_id2)";
-    
+
     $stmt = $db->prepare($query);
     $stmt->bindParam(':user_id', $user_id);
     $stmt->bindParam(':user_id2', $user_id);
     $stmt->bindParam(':other_user_id', $other_user_id);
     $stmt->bindParam(':other_user_id2', $other_user_id);
-    
+
     if ($stmt->execute()) {
         echo json_encode(['success' => true]);
     } else {

@@ -51,18 +51,18 @@ document.addEventListener('DOMContentLoaded', function () {
     setInterval(updateOnlineStatus, 30000);
 
     // Detect browser close/tab close and set user offline
-    window.addEventListener('beforeunload', function() {
+    window.addEventListener('beforeunload', function () {
         // Use sendBeacon for reliable offline status update
         const formData = new FormData();
         formData.append('action', 'update_online_status');
         formData.append('status', 'offline');
-        
+
         // sendBeacon is more reliable than fetch for page unload
         navigator.sendBeacon('../api/auth.php', formData);
     });
 
     // Also handle visibility change (tab switching)
-    document.addEventListener('visibilitychange', function() {
+    document.addEventListener('visibilitychange', function () {
         if (document.hidden) {
             // User switched tabs or minimized browser
             // Don't set offline immediately, let the heartbeat handle it
@@ -184,12 +184,12 @@ async function loadFriends() {
                 `;
                 friendList.appendChild(friendItem);
             });
-            
+
             // Load friend requests below friends list
             await loadFriendRequestsInFriendsTab();
         } else {
             friendList.innerHTML = '<p class="empty-state">No friends yet</p>';
-            
+
             // Still load friend requests even if no friends
             await loadFriendRequestsInFriendsTab();
         }
@@ -203,15 +203,15 @@ async function loadFriends() {
 async function loadFriendRequestsInFriendsTab() {
     const response = await fetch('../api/users.php?action=get_friend_requests');
     const data = await response.json();
-    
+
     const friendList = document.getElementById('friendList');
-    
+
     if (data.success && data.requests.length > 0) {
         // Add friend requests section
         const requestsSection = document.createElement('div');
         requestsSection.className = 'friend-requests-section';
         requestsSection.innerHTML = '<h4>Friend Requests</h4>';
-        
+
         data.requests.forEach(req => {
             const reqItem = document.createElement('div');
             reqItem.className = 'request-item';
@@ -224,17 +224,17 @@ async function loadFriendRequestsInFriendsTab() {
             `;
             requestsSection.appendChild(reqItem);
         });
-        
+
         friendList.appendChild(requestsSection);
     }
 }
 
 function openChat(userId, username) {
     currentChatUser = userId;
-    
+
     // Update sidebar username immediately
     document.getElementById('infoUserName').textContent = username;
-    
+
     document.getElementById('chatHeader').innerHTML = `
         <div class="chat-header-info">
             <button class="back-btn-mobile" id="mobileBackBtn">
@@ -281,6 +281,76 @@ function openChat(userId, username) {
     if (messageInterval) clearInterval(messageInterval);
     loadMessages();
     messageInterval = setInterval(loadMessages, 2000);
+
+    // Check blocking status
+    checkBlockingStatus(userId);
+}
+
+async function checkBlockingStatus(userId) {
+    const response = await fetch(`../api/users.php?action=get_user_info&user_id=${userId}`);
+    const data = await response.json();
+
+    const inputArea = document.getElementById('messageInputArea');
+    const blockedMessage = document.getElementById('blockedMessage');
+
+    if (data.success && data.user) {
+        if (data.user.is_blocked) {
+            // Current user has blocked the other user
+            inputArea.classList.add('hidden');
+            if (!blockedMessage) {
+                const msg = document.createElement('div');
+                msg.id = 'blockedMessage';
+                msg.style.cssText = 'padding: 15px; text-align: center; border-top: 1px solid #ddd; background: #f9f9f9;';
+                msg.innerHTML = `<p style="margin-bottom: 10px;">You have blocked this user.</p>
+                                 <button class="btn-primary" onclick="unblockUser(${userId})">Unblock User</button>`;
+                inputArea.after(msg);
+            } else {
+                blockedMessage.innerHTML = `<p style="margin-bottom: 10px;">You have blocked this user.</p>
+                                             <button class="btn-primary" onclick="unblockUser(${userId})">Unblock User</button>`;
+                blockedMessage.classList.remove('hidden');
+            }
+        } else if (data.user.blocked_by) {
+            // Current user is blocked BY the other user
+            inputArea.classList.add('hidden');
+            if (!blockedMessage) {
+                const msg = document.createElement('div');
+                msg.id = 'blockedMessage';
+                msg.style.cssText = 'padding: 15px; text-align: center; border-top: 1px solid #ddd; background: #f9f9f9;';
+                msg.innerHTML = `<p>This user is not available.</p>`;
+                inputArea.after(msg);
+            } else {
+                blockedMessage.innerHTML = `<p>This user is not available.</p>`;
+                blockedMessage.classList.remove('hidden');
+            }
+        } else {
+            // No block
+            inputArea.classList.remove('hidden');
+            if (blockedMessage) blockedMessage.classList.add('hidden');
+        }
+    }
+}
+
+async function unblockUser(userId) {
+    const confirmed = await dialog.confirm('Unblock this user?');
+    if (!confirmed) return;
+
+    const formData = new FormData();
+    formData.append('action', 'unblock_user');
+    formData.append('user_id', userId);
+
+    const response = await fetch('../api/users.php', {
+        method: 'POST',
+        body: formData
+    });
+
+    const data = await response.json();
+    if (data.success) {
+        dialog.success('User unblocked');
+        checkBlockingStatus(userId); // Refresh UI
+        loadChats();
+    } else {
+        dialog.error(data.message || 'Failed to unblock user');
+    }
 }
 
 async function updateHeaderStatus(userId) {
@@ -291,7 +361,7 @@ async function updateHeaderStatus(userId) {
         const statusDot = document.getElementById('headerOnlineStatus');
         if (statusDot) {
             statusDot.className = data.user.is_online ? 'online-status online' : 'online-status offline';
-            
+
             // Show time next to dot (only if not online and not offline and has time)
             let statusTextElem = document.getElementById('headerStatusText');
             if (!statusTextElem) {
@@ -300,9 +370,9 @@ async function updateHeaderStatus(userId) {
                 statusTextElem.className = 'status-time';
                 statusDot.after(statusTextElem);
             }
-            
+
             // Only show time if user is not currently online and not completely offline
-            if (!data.user.is_online && data.user.status_text && 
+            if (!data.user.is_online && data.user.status_text &&
                 data.user.status_text !== 'Offline' && data.user.status_text !== 'Online') {
                 statusTextElem.textContent = data.user.status_text;
                 statusTextElem.style.display = 'inline';
@@ -516,10 +586,10 @@ function showAddFriendModal() {
 
     const searchInput = document.getElementById('searchFriend');
     const results = document.getElementById('friendSearchResults');
-    
+
     searchInput.addEventListener('input', async function (e) {
         const search = e.target.value.trim();
-        
+
         if (search.length < 2) {
             results.innerHTML = '<p style="padding: 10px; color: #999; text-align: center;">Type at least 2 characters to search</p>';
             return;
@@ -529,11 +599,11 @@ function showAddFriendModal() {
 
         try {
             const response = await fetch(`../api/users.php?action=search&search=${encodeURIComponent(search)}`);
-            
+
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
-            
+
             const data = await response.json();
 
             results.innerHTML = '';
@@ -547,10 +617,10 @@ function showAddFriendModal() {
                         <span style="font-weight: 500;">${user.username}</span>
                         <button onclick="addFriend(${user.id})" style="background: #0084ff; color: white; border: none; padding: 6px 16px; border-radius: 4px; cursor: pointer;">Add</button>
                     `;
-                    userDiv.addEventListener('mouseenter', function() {
+                    userDiv.addEventListener('mouseenter', function () {
                         this.style.background = '#f5f5f5';
                     });
-                    userDiv.addEventListener('mouseleave', function() {
+                    userDiv.addEventListener('mouseleave', function () {
                         this.style.background = 'white';
                     });
                     results.appendChild(userDiv);
@@ -563,7 +633,7 @@ function showAddFriendModal() {
             results.innerHTML = '<p style="padding: 20px; color: #666; text-align: center;">Error searching. Please try again.</p>';
         }
     });
-    
+
     // Focus on search input
     setTimeout(() => searchInput.focus(), 100);
 }
@@ -580,7 +650,7 @@ async function addFriend(friendId) {
         });
 
         const data = await response.json();
-        
+
         if (data.success) {
             dialog.success(data.message || 'Friend request sent!');
             closeModal();
@@ -597,7 +667,7 @@ async function addFriend(friendId) {
 async function loadFriendRequests() {
     const requestList = document.getElementById('requestList');
     requestList.innerHTML = '<h3 style="padding: 15px; margin: 0;">Message Requests</h3>';
-    
+
     // Load message requests (messages from non-friends)
     const response = await fetch('../api/users.php?action=get_message_requests');
     const data = await response.json();
@@ -606,11 +676,11 @@ async function loadFriendRequests() {
         data.requests.forEach(req => {
             const reqItem = document.createElement('div');
             reqItem.className = 'request-item';
-            
-            const onlineStatus = req.is_online ? 
-                '<span class="online-status online"></span>' : 
+
+            const onlineStatus = req.is_online ?
+                '<span class="online-status online"></span>' :
                 '<span class="online-status offline"></span>';
-            
+
             reqItem.innerHTML = `
                 <div class="request-info">
                     <span>${req.username} ${onlineStatus}</span>
@@ -634,30 +704,30 @@ async function acceptMessageRequest(userId, username) {
     const formData = new FormData();
     formData.append('action', 'send_friend_request');
     formData.append('friend_id', userId);
-    
+
     const response = await fetch('../api/users.php', {
         method: 'POST',
         body: formData
     });
-    
+
     const data = await response.json();
-    
+
     // Delete the message_request notification for this user
     const deleteNotifData = new FormData();
     deleteNotifData.append('action', 'delete_message_request_notification');
     deleteNotifData.append('from_user_id', userId);
-    
+
     await fetch('../api/notifications.php', {
         method: 'POST',
         body: deleteNotifData
     });
-    
+
     // Open chat regardless of friend request status
     openChat(userId, username);
-    
+
     // Refresh the message requests list to remove this user
     loadFriendRequests();
-    
+
     // Also refresh friends list and notifications
     loadFriends();
     loadNotifications();
@@ -668,12 +738,12 @@ async function rejectMessageRequest(userId) {
     const formData = new FormData();
     formData.append('action', 'delete_message_request');
     formData.append('user_id', userId);
-    
+
     const response = await fetch('../api/users.php', {
         method: 'POST',
         body: formData
     });
-    
+
     const data = await response.json();
     if (data.success) {
         dialog.success('Message request deleted');
@@ -898,20 +968,20 @@ function attachChatActionListeners() {
 
 async function clearChat() {
     if (!currentChatUser) return;
-    
+
     const confirmed = await dialog.confirm('Clear all messages in this chat? This cannot be undone.');
     if (!confirmed) return;
-    
+
     const formData = new FormData();
     formData.append('action', 'clear_chat');
     formData.append('user_id', currentChatUser);
-    
+
     try {
         const response = await fetch('../api/messages.php', {
             method: 'POST',
             body: formData
         });
-        
+
         const data = await response.json();
         if (data.success) {
             dialog.success('Chat cleared successfully');
@@ -929,19 +999,19 @@ async function clearChat() {
 
 async function blockUser() {
     if (!currentChatUser) return;
-    
+
     const confirmed = await dialog.confirm('Block this user? They will not be able to send you messages.');
     if (!confirmed) return;
-    
+
     const formData = new FormData();
     formData.append('action', 'block_user');
     formData.append('user_id', currentChatUser);
-    
+
     const response = await fetch('../api/users.php', {
         method: 'POST',
         body: formData
     });
-    
+
     const data = await response.json();
     if (data.success) {
         dialog.success('User blocked successfully');
@@ -957,20 +1027,20 @@ async function blockUser() {
 
 async function reportUser() {
     if (!currentChatUser) return;
-    
+
     const reason = prompt('Please provide a reason for reporting this user:');
     if (!reason || reason.trim() === '') return;
-    
+
     const formData = new FormData();
     formData.append('action', 'report_user');
     formData.append('user_id', currentChatUser);
     formData.append('reason', reason);
-    
+
     const response = await fetch('../api/users.php', {
         method: 'POST',
         body: formData
     });
-    
+
     const data = await response.json();
     if (data.success) {
         dialog.success('User reported successfully. Admin will review your report.');
@@ -982,19 +1052,19 @@ async function reportUser() {
 
 async function deleteChat() {
     if (!currentChatUser) return;
-    
+
     const confirmed = await dialog.confirm('Delete this entire chat? This will remove all messages and cannot be undone.');
     if (!confirmed) return;
-    
+
     const formData = new FormData();
     formData.append('action', 'delete_chat');
     formData.append('user_id', currentChatUser);
-    
+
     const response = await fetch('../api/messages.php', {
         method: 'POST',
         body: formData
     });
-    
+
     const data = await response.json();
     if (data.success) {
         dialog.success('Chat deleted successfully');
@@ -1010,7 +1080,7 @@ async function deleteChat() {
 
 async function loadChatMedia(userId) {
     console.log('loadChatMedia called with userId:', userId); // Debug
-    
+
     const response = await fetch(`../api/messages.php?action=get_media&user_id=${userId}`);
     const data = await response.json();
 
@@ -1419,17 +1489,17 @@ function closeImageLightbox() {
 }
 
 // Initialize lightbox close handlers
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const lightbox = document.getElementById('imageLightbox');
     const closeLightboxBtn = document.querySelector('.close-lightbox');
-    
+
     if (closeLightboxBtn) {
         closeLightboxBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             closeImageLightbox();
         });
     }
-    
+
     if (lightbox) {
         lightbox.addEventListener('click', (e) => {
             if (e.target === lightbox) {
@@ -1437,7 +1507,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // ESC key to close lightbox
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {

@@ -79,4 +79,19 @@ if ($action === 'delete') {
         echo json_encode(['success' => false, 'message' => 'Failed to delete notification']);
     }
 }
+
+if ($action === 'delete_message_request_notification') {
+    $from_user_id = $_POST['from_user_id'] ?? 0;
+
+    $query = "DELETE FROM notifications WHERE user_id = :user_id AND from_user_id = :from_user_id AND type = 'message_request'";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':user_id', $user_id);
+    $stmt->bindParam(':from_user_id', $from_user_id);
+
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to delete notification']);
+    }
+}
 ?>

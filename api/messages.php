@@ -81,13 +81,41 @@ if ($action === 'send') {
     if ($stmt->execute()) {
         $message_id = $db->lastInsertId();
 
-        // Create notification for receiver
-        $notif = "INSERT INTO notifications (user_id, type, from_user_id, message) VALUES (:user_id, 'message', :from_user_id, :message)";
-        $stmt_notif = $db->prepare($notif);
-        $stmt_notif->bindParam(':user_id', $receiver_id);
-        $stmt_notif->bindParam(':from_user_id', $user_id);
-        $stmt_notif->bindParam(':message', $message);
-        $stmt_notif->execute();
+        // Check if sender and receiver are friends
+        $check_friends = "SELECT * FROM friends 
+                         WHERE ((user_id = :user_id AND friend_id = :receiver_id) 
+                            OR (user_id = :receiver_id2 AND friend_id = :user_id2))
+                         AND status = 'accepted'";
+        $stmt_friends = $db->prepare($check_friends);
+        $stmt_friends->bindParam(':user_id', $user_id);
+        $stmt_friends->bindParam(':receiver_id', $receiver_id);
+        $stmt_friends->bindParam(':user_id2', $user_id);
+        $stmt_friends->bindParam(':receiver_id2', $receiver_id);
+        $stmt_friends->execute();
+
+        // Only create notification if they are NOT friends (message request)
+        if ($stmt_friends->rowCount() === 0) {
+            // Check if this is the first message (no notification sent yet)
+            $check_notif = "SELECT * FROM notifications 
+                           WHERE user_id = :receiver_id 
+                           AND from_user_id = :user_id 
+                           AND type = 'message_request'";
+            $stmt_check_notif = $db->prepare($check_notif);
+            $stmt_check_notif->bindParam(':receiver_id', $receiver_id);
+            $stmt_check_notif->bindParam(':user_id', $user_id);
+            $stmt_check_notif->execute();
+
+            // Only create notification if no message_request notification exists
+            if ($stmt_check_notif->rowCount() === 0) {
+                $notif = "INSERT INTO notifications (user_id, type, from_user_id, message) 
+                         VALUES (:user_id, 'message_request', :from_user_id, :message)";
+                $stmt_notif = $db->prepare($notif);
+                $stmt_notif->bindParam(':user_id', $receiver_id);
+                $stmt_notif->bindParam(':from_user_id', $user_id);
+                $stmt_notif->bindParam(':message', $message);
+                $stmt_notif->execute();
+            }
+        }
 
         echo json_encode(['success' => true, 'message_id' => $message_id]);
     } else {

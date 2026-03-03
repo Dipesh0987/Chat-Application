@@ -590,14 +590,32 @@ async function acceptMessageRequest(userId, username) {
     formData.append('action', 'send_friend_request');
     formData.append('friend_id', userId);
     
-    await fetch('../api/users.php', {
+    const response = await fetch('../api/users.php', {
         method: 'POST',
         body: formData
     });
     
-    // Open chat
+    const data = await response.json();
+    
+    // Delete the message_request notification for this user
+    const deleteNotifData = new FormData();
+    deleteNotifData.append('action', 'delete_message_request_notification');
+    deleteNotifData.append('from_user_id', userId);
+    
+    await fetch('../api/notifications.php', {
+        method: 'POST',
+        body: deleteNotifData
+    });
+    
+    // Open chat regardless of friend request status
     openChat(userId, username);
+    
+    // Refresh the message requests list to remove this user
     loadFriendRequests();
+    
+    // Also refresh friends list and notifications
+    loadFriends();
+    loadNotifications();
 }
 
 async function rejectMessageRequest(userId) {
@@ -684,8 +702,8 @@ async function showNotificationsModal() {
                 message = `${notif.from_username} sent you a friend request`;
             } else if (notif.type === 'friend_accepted') {
                 message = `${notif.from_username} accepted your friend request`;
-            } else if (notif.type === 'message') {
-                message = `New message from ${notif.from_username}`;
+            } else if (notif.type === 'message_request') {
+                message = `${notif.from_username} sent you a message request`;
             } else if (notif.type === 'warning') {
                 message = notif.message || `You received a warning from ${notif.from_username}`;
             }

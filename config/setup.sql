@@ -51,7 +51,7 @@ CREATE INDEX idx_messages_created ON messages(created_at);
 CREATE TABLE IF NOT EXISTS notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    type ENUM('friend_request', 'friend_accepted', 'message', 'warning') NOT NULL,
+    type ENUM('friend_request', 'friend_accepted', 'message_request', 'warning') NOT NULL,
     from_user_id INT NOT NULL,
     reference_id INT NULL,
     message TEXT NULL,

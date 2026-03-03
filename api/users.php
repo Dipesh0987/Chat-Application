@@ -181,7 +181,7 @@ if ($action === 'get_friend_requests') {
 if ($action === 'get_chats') {
     $user_id = $_SESSION['user_id'];
 
-    $query = "SELECT DISTINCT 
+    $query = "SELECT 
               CASE 
                 WHEN m.sender_id = :user_id THEN m.receiver_id 
                 ELSE m.sender_id 
@@ -194,14 +194,16 @@ if ($action === 'get_chats') {
                   OR (sender_id = user_id AND receiver_id = :user_id3)
                ORDER BY created_at DESC LIMIT 1) as last_message,
               (SELECT COUNT(*) FROM messages 
-               WHERE sender_id = user_id AND receiver_id = :user_id4 AND is_read = FALSE) as unread_count
+               WHERE sender_id = user_id AND receiver_id = :user_id4 AND is_read = FALSE) as unread_count,
+              MAX(m.created_at) as last_message_time
               FROM messages m
               JOIN users u ON u.id = CASE 
                 WHEN m.sender_id = :user_id5 THEN m.receiver_id 
                 ELSE m.sender_id 
               END
               WHERE m.sender_id = :user_id6 OR m.receiver_id = :user_id7
-              ORDER BY m.created_at DESC";
+              GROUP BY user_id, u.username, u.is_online, u.last_seen
+              ORDER BY last_message_time DESC";
 
     $stmt = $db->prepare($query);
     $stmt->bindParam(':user_id', $user_id);
@@ -241,29 +243,34 @@ if ($action === 'get_user_info') {
 if ($action === 'get_message_requests') {
     $user_id = $_SESSION['user_id'];
     
-    // Get messages from users who are not friends
-    $query = "SELECT DISTINCT 
+    // Get messages from users who are not friends - GROUP BY to show only ONE request per user
+    $query = "SELECT 
               m.sender_id as user_id,
               u.username,
               u.is_online,
               u.last_seen,
-              (SELECT message FROM messages 
-               WHERE sender_id = m.sender_id AND receiver_id = :user_id
-               ORDER BY created_at DESC LIMIT 1) as last_message,
-              (SELECT created_at FROM messages 
-               WHERE sender_id = m.sender_id AND receiver_id = :user_id2
-               ORDER BY created_at DESC LIMIT 1) as created_at
+              MAX(m.message) as last_message,
+              MAX(m.created_at) as created_at
               FROM messages m
               JOIN users u ON m.sender_id = u.id
-              WHERE m.receiver_id = :user_id3
+              WHERE m.receiver_id = :user_id
               AND m.sender_id NOT IN (
                   SELECT friend_id FROM friends 
-                  WHERE user_id = :user_id4 AND status = 'accepted'
+                  WHERE user_id = :user_id2 AND status = 'accepted'
               )
               AND m.sender_id NOT IN (
                   SELECT user_id FROM friends 
-                  WHERE friend_id = :user_id5 AND status = 'accepted'
+                  WHERE friend_id = :user_id3 AND status = 'accepted'
               )
+              AND m.sender_id NOT IN (
+                  SELECT friend_id FROM friends 
+                  WHERE user_id = :user_id4 AND status = 'pending'
+              )
+              AND m.sender_id NOT IN (
+                  SELECT user_id FROM friends 
+                  WHERE friend_id = :user_id5 AND status = 'pending'
+              )
+              GROUP BY m.sender_id, u.username, u.is_online, u.last_seen
               ORDER BY created_at DESC";
     
     $stmt = $db->prepare($query);

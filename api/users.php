@@ -31,17 +31,20 @@ function formatLastSeen($lastSeen)
     if ($diff < 120)
         return ['text' => 'Online', 'is_online' => true, 'ago_text' => 'Online'];
 
-    // If more than 3 hours, just return 'Offline'
-    if ($diff > 3 * 3600)
-        return ['text' => 'Offline', 'is_online' => false, 'ago_text' => 'Offline'];
-
-    // Otherwise, show relative time (up to 3 hours)
-    if ($diff < 3600) {
+    // Show relative time up to 7 days
+    if ($diff < 60) {
+        return ['text' => 'Just now', 'is_online' => false, 'ago_text' => 'Just now'];
+    } elseif ($diff < 3600) {
         $mins = floor($diff / 60);
-        return ['text' => "{$mins}min", 'is_online' => false, 'ago_text' => "Online {$mins}min ago"];
-    } else {
+        return ['text' => "{$mins} min ago", 'is_online' => false, 'ago_text' => "{$mins} min ago"];
+    } elseif ($diff < 86400) {
         $hrs = floor($diff / 3600);
-        return ['text' => "{$hrs}hr", 'is_online' => false, 'ago_text' => "Online {$hrs}hr ago"];
+        return ['text' => "{$hrs} hr ago", 'is_online' => false, 'ago_text' => "{$hrs} hr ago"];
+    } elseif ($diff < 604800) {
+        $days = floor($diff / 86400);
+        return ['text' => "{$days} d ago", 'is_online' => false, 'ago_text' => "{$days} d ago"];
+    } else {
+        return ['text' => 'Offline', 'is_online' => false, 'ago_text' => 'Offline'];
     }
 }
 

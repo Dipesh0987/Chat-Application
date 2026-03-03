@@ -192,6 +192,13 @@ body {
     font-weight: 500;
 }
 
+.last-seen-text {
+    font-size: 11px;
+    color: #999;
+    margin-top: 3px;
+    font-weight: normal;
+}
+
 .friend-item {
     display: flex;
     justify-content: space-between;

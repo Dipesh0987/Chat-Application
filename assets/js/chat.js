@@ -49,6 +49,28 @@ document.addEventListener('DOMContentLoaded', function () {
     // Heartbeat: update online status every 30 seconds
     updateOnlineStatus();
     setInterval(updateOnlineStatus, 30000);
+
+    // Detect browser close/tab close and set user offline
+    window.addEventListener('beforeunload', function() {
+        // Use sendBeacon for reliable offline status update
+        const formData = new FormData();
+        formData.append('action', 'update_online_status');
+        formData.append('status', 'offline');
+        
+        // sendBeacon is more reliable than fetch for page unload
+        navigator.sendBeacon('../api/auth.php', formData);
+    });
+
+    // Also handle visibility change (tab switching)
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            // User switched tabs or minimized browser
+            // Don't set offline immediately, let the heartbeat handle it
+        } else {
+            // User came back, update status
+            updateOnlineStatus();
+        }
+    });
 });
 
 async function updateOnlineStatus() {
@@ -89,6 +111,9 @@ async function loadChats() {
                 `<span class="online-status online" title="${chat.status_text}"></span>` :
                 `<span class="online-status offline" title="${chat.status_text}"></span>`;
 
+            // Debug: Log the status info
+            console.log(`User: ${chat.username}, is_online: ${chat.is_online}, status_text: ${chat.status_text}, ago_text: ${chat.ago_text}`);
+
             // Truncate long messages intelligently
             let displayMessage = chat.last_message || 'No messages yet';
             if (displayMessage !== 'No messages yet') {
@@ -116,7 +141,7 @@ async function loadChats() {
                     <strong>${chat.username} ${onlineStatus}</strong>
                 </div>
                 <p>${displayMessage}</p>
-                ${!chat.is_online && chat.status_text !== 'Offline' ? `<div class="last-seen-text">${chat.status_text}</div>` : ''}
+                <div class="last-seen-text">${chat.status_text}</div>
                 ${unreadBadge}
             `;
             chatItem.addEventListener('click', () => openChat(chat.user_id, chat.username));
@@ -147,7 +172,7 @@ async function loadFriends() {
                 friendItem.innerHTML = `
                     <div class="friend-info">
                         <span>${friend.username} ${onlineStatus}</span>
-                        ${!friend.is_online && friend.status_text && friend.status_text !== 'Offline' ? `<div class="last-seen-text">${friend.status_text}</div>` : ''}
+                        <div class="last-seen-text">${friend.status_text}</div>
                     </div>
                     <button class="message-btn" onclick="openChat(${friend.id}, '${friend.username}')">Message</button>
                 `;
@@ -256,9 +281,9 @@ async function updateHeaderStatus(userId) {
         const statusDot = document.getElementById('headerOnlineStatus');
         if (statusDot) {
             statusDot.className = data.user.is_online ? 'online-status online' : 'online-status offline';
-            statusDot.title = data.user.status_text;
+            statusDot.title = data.user.ago_text || data.user.status_text;
 
-            // Optionally show status text in header
+            // Show status text in header
             let statusTextElem = document.getElementById('headerStatusText');
             if (!statusTextElem) {
                 statusTextElem = document.createElement('small');
@@ -267,9 +292,9 @@ async function updateHeaderStatus(userId) {
                 statusTextElem.style.fontSize = '0.75rem';
                 statusTextElem.style.color = '#666';
                 statusTextElem.style.fontWeight = 'normal';
-                document.querySelector('.chat-header-info').appendChild(statusTextElem);
+                document.querySelector('.chat-header-info strong').appendChild(statusTextElem);
             }
-            statusTextElem.textContent = data.user.status_text;
+            statusTextElem.textContent = data.user.ago_text || data.user.status_text;
         }
     }
 }
@@ -1077,15 +1102,23 @@ function closeModal() {
 }
 
 async function logout() {
-    // Update online status to offline
-    updateOnlineStatus('offline');
-
+    // Update online status to offline before logout
     const formData = new FormData();
-    formData.append('action', 'logout');
+    formData.append('action', 'update_online_status');
+    formData.append('status', 'offline');
 
     await fetch('../api/auth.php', {
         method: 'POST',
         body: formData
+    });
+
+    // Now logout
+    const logoutData = new FormData();
+    logoutData.append('action', 'logout');
+
+    await fetch('../api/auth.php', {
+        method: 'POST',
+        body: logoutData
     });
 
     window.location.href = '../index.php';

@@ -15,31 +15,33 @@ $db = $database->getConnection();
 
 // --- AUTO-OFFLINE CLEANUP ---
 // Set users offline if they haven't been seen for more than 2 minutes.
-$db->query("UPDATE users SET is_online = FALSE WHERE last_seen < NOW() - INTERVAL 2 MINUTE AND is_online = TRUE");
+// This runs on every API call to ensure stale online statuses are cleaned up
+$cleanup_query = "UPDATE users SET is_online = FALSE WHERE last_seen < DATE_SUB(NOW(), INTERVAL 2 MINUTE) AND is_online = TRUE";
+$db->exec($cleanup_query);
 
 function formatLastSeen($lastSeen)
 {
     if (!$lastSeen)
-        return 'Offline';
+        return ['text' => 'Offline', 'is_online' => false, 'ago_text' => 'Offline'];
 
     $timestamp = strtotime($lastSeen);
     $diff = time() - $timestamp;
 
     // User is "Online" if active within the last 2 minutes
     if ($diff < 120)
-        return 'Online';
+        return ['text' => 'Online', 'is_online' => true, 'ago_text' => 'Online'];
 
-    // If more than 5 hours, just return 'Offline'
-    if ($diff > 5 * 3600)
-        return 'Offline';
+    // If more than 3 hours, just return 'Offline'
+    if ($diff > 3 * 3600)
+        return ['text' => 'Offline', 'is_online' => false, 'ago_text' => 'Offline'];
 
-    // Otherwise, show relative time
+    // Otherwise, show relative time (up to 3 hours)
     if ($diff < 3600) {
         $mins = floor($diff / 60);
-        return "Last seen {$mins}m ago";
+        return ['text' => "{$mins}min", 'is_online' => false, 'ago_text' => "Online {$mins}min ago"];
     } else {
         $hrs = floor($diff / 3600);
-        return "Last seen {$hrs}h ago";
+        return ['text' => "{$hrs}hr", 'is_online' => false, 'ago_text' => "Online {$hrs}hr ago"];
     }
 }
 
@@ -71,9 +73,10 @@ if ($action === 'get_friends') {
 
     $friends = $stmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($friends as &$friend) {
-        $friend['status_text'] = formatLastSeen($friend['last_seen']);
-        // Ensure is_online is consistent with our 2-min rule
-        $friend['is_online'] = ($friend['status_text'] === 'Online') ? 1 : 0;
+        $status_info = formatLastSeen($friend['last_seen']);
+        $friend['status_text'] = $status_info['text'];
+        $friend['ago_text'] = $status_info['ago_text'] ?? $status_info['text'];
+        $friend['is_online'] = $status_info['is_online'] ? 1 : 0;
     }
 
     echo json_encode(['success' => true, 'friends' => $friends]);
@@ -217,8 +220,10 @@ if ($action === 'get_chats') {
 
     $chats = $stmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($chats as &$chat) {
-        $chat['status_text'] = formatLastSeen($chat['last_seen']);
-        $chat['is_online'] = ($chat['status_text'] === 'Online') ? 1 : 0;
+        $status_info = formatLastSeen($chat['last_seen']);
+        $chat['status_text'] = $status_info['text'];
+        $chat['ago_text'] = $status_info['ago_text'] ?? $status_info['text'];
+        $chat['is_online'] = $status_info['is_online'] ? 1 : 0;
     }
 
     echo json_encode(['success' => true, 'chats' => $chats]);
@@ -234,8 +239,10 @@ if ($action === 'get_user_info') {
 
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($user) {
-        $user['status_text'] = formatLastSeen($user['last_seen']);
-        $user['is_online'] = ($user['status_text'] === 'Online') ? 1 : 0;
+        $status_info = formatLastSeen($user['last_seen']);
+        $user['status_text'] = $status_info['text'];
+        $user['ago_text'] = $status_info['ago_text'] ?? $status_info['text'];
+        $user['is_online'] = $status_info['is_online'] ? 1 : 0;
     }
     echo json_encode(['success' => true, 'user' => $user]);
 }

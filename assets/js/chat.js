@@ -2,6 +2,12 @@ let currentChatUser = null;
 let messageInterval = null;
 let notificationInterval = null;
 let chatListInterval = null;
+let notificationsEnabled = true;
+let lastUnreadCount = 0;
+let lastActiveChatCount = 0;
+
+const inChatSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+const newMessageSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
 
 document.addEventListener('DOMContentLoaded', function () {
     loadChats();
@@ -9,6 +15,15 @@ document.addEventListener('DOMContentLoaded', function () {
     loadFriendRequests();
     loadNotifications();
     loadUserProfile();
+
+    // Load initial notification setting
+    fetch('../api/settings.php?action=get_profile')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.user) {
+                notificationsEnabled = parseInt(data.user.notifications_enabled) === 1;
+            }
+        });
 
     document.getElementById('settingsBtn').addEventListener('click', showSettingsModal);
     document.getElementById('newChatBtn').addEventListener('click', showNewChatModal);
@@ -86,71 +101,101 @@ async function updateOnlineStatus() {
 }
 
 async function loadChats() {
-    const response = await fetch('../api/users.php?action=get_chats');
-    const data = await response.json();
+    try {
+        const response = await fetch('../api/users.php?action=get_chats');
+        const data = await response.json();
 
-    const chatList = document.getElementById('chatList');
-    chatList.innerHTML = '';
+        const chatList = document.getElementById('chatList');
+        if (!chatList) return;
 
-    if (data.success && data.chats.length > 0) {
-        data.chats.forEach(chat => {
-            const chatItem = document.createElement('div');
-            chatItem.className = 'chat-item';
-            chatItem.style.position = 'relative';
+        if (data.success && data.chats.length > 0) {
+            let currentTotalUnread = 0;
+            data.chats.forEach(chat => {
+                currentTotalUnread += parseInt(chat.unread_count || 0);
+            });
 
-            // Highlight if there are unread messages
-            if (chat.unread_count > 0) {
-                chatItem.classList.add('has-unread');
-            }
-
-            const unreadBadge = chat.unread_count > 0
-                ? `<span class="unread-badge">${chat.unread_count}</span>`
-                : '';
-
-            // Show time next to status dot (only if not currently online and has time info)
-            let statusTime = '';
-            if (!chat.is_online && chat.status_text && chat.status_text !== 'Offline' && chat.status_text !== 'Online') {
-                statusTime = `<span class="status-time">${chat.status_text}</span>`;
-            }
-
-            const onlineStatus = chat.is_online ?
-                `<span class="online-status online"></span>` :
-                `<span class="online-status offline"></span>`;
-
-            // Truncate long messages intelligently
-            let displayMessage = chat.last_message || 'No messages yet';
-            if (displayMessage !== 'No messages yet') {
-                const words = displayMessage.split(' ');
-
-                // Check if any single word is too long
-                const hasLongWord = words.some(word => word.length > 30);
-
-                if (hasLongWord) {
-                    // If there's a very long word, truncate at character level (50 chars)
-                    if (displayMessage.length > 50) {
-                        displayMessage = displayMessage.substring(0, 50) + '...';
+            // Background Message Sound Logic
+            if (notificationsEnabled && currentTotalUnread > lastUnreadCount) {
+                let backgroundUnread = 0;
+                data.chats.forEach(chat => {
+                    if (chat.user_id != currentChatUser) {
+                        backgroundUnread += parseInt(chat.unread_count || 0);
                     }
-                } else if (words.length > 5) {
-                    // If more than 5 words, show first 5 words
-                    displayMessage = words.slice(0, 5).join(' ') + '...';
-                } else if (displayMessage.length > 60) {
-                    // If less than 5 words but still too long, truncate at 60 chars
-                    displayMessage = displayMessage.substring(0, 60) + '...';
-                }
-            }
+                });
 
-            chatItem.innerHTML = `
+                if (typeof lastBackgroundUnread !== 'undefined' && backgroundUnread > lastBackgroundUnread) {
+                    newMessageSound.play().catch(e => console.log('Audio playback blocked'));
+                }
+                window.lastBackgroundUnread = backgroundUnread;
+            } else if (typeof lastBackgroundUnread === 'undefined') {
+                let initialBackgroundUnread = 0;
+                data.chats.forEach(chat => {
+                    if (chat.user_id != currentChatUser) {
+                        initialBackgroundUnread += parseInt(chat.unread_count || 0);
+                    }
+                });
+                window.lastBackgroundUnread = initialBackgroundUnread;
+            }
+            lastUnreadCount = currentTotalUnread;
+
+            chatList.innerHTML = '';
+            data.chats.forEach(chat => {
+                const chatItem = document.createElement('div');
+                chatItem.className = 'chat-item';
+                chatItem.style.position = 'relative';
+
+                if (chat.user_id == currentChatUser) {
+                    chatItem.classList.add('active');
+                }
+
+                if (chat.unread_count > 0) {
+                    chatItem.classList.add('has-unread');
+                }
+
+                const unreadBadge = chat.unread_count > 0
+                    ? `<span class="unread-badge">${chat.unread_count}</span>`
+                    : '';
+
+                let statusTime = '';
+                if (!chat.is_online && chat.status_text && chat.status_text !== 'Offline' && chat.status_text !== 'Online') {
+                    statusTime = `<span class="status-time">${chat.status_text}</span>`;
+                }
+
+                const onlineStatus = chat.is_online ?
+                    `<span class="online-status online"></span>` :
+                    `<span class="online-status offline"></span>`;
+
+                let displayMessage = chat.last_message || 'No messages yet';
+                if (displayMessage !== 'No messages yet') {
+                    const words = displayMessage.split(' ');
+                    const hasLongWord = words.some(word => word.length > 30);
+
+                    if (hasLongWord) {
+                        if (displayMessage.length > 50) {
+                            displayMessage = displayMessage.substring(0, 50) + '...';
+                        }
+                    } else if (words.length > 5) {
+                        displayMessage = words.slice(0, 5).join(' ') + '...';
+                    } else if (displayMessage.length > 60) {
+                        displayMessage = displayMessage.substring(0, 60) + '...';
+                    }
+                }
+
+                chatItem.innerHTML = `
                 <div class="chat-item-header">
                     <strong>${chat.username} ${onlineStatus}${statusTime}</strong>
                     ${unreadBadge}
                 </div>
                 <p>${displayMessage}</p>
             `;
-            chatItem.addEventListener('click', () => openChat(chat.user_id, chat.username));
-            chatList.appendChild(chatItem);
-        });
-    } else {
-        chatList.innerHTML = '<p class="empty-state">No chats yet</p>';
+                chatItem.addEventListener('click', () => openChat(chat.user_id, chat.username));
+                chatList.appendChild(chatItem);
+            });
+        } else {
+            chatList.innerHTML = '<p class="empty-state">No chats yet</p>';
+        }
+    } catch (error) {
+        console.error('Load chats error:', error);
     }
 }
 
@@ -416,6 +461,18 @@ async function loadMessages() {
         container.innerHTML = '';
 
         if (data.success && data.messages.length > 0) {
+            // In-Chat Message Sound Logic
+            // Compare current message count with previous count
+            // Also ensure we only play for RECEIVED messages (not own messages)
+            const receivedMessages = data.messages.filter(m => m.sender_id == currentChatUser);
+            if (notificationsEnabled && receivedMessages.length > lastActiveChatCount) {
+                // If this isn't the first load of this chat
+                if (lastActiveChatCount > 0) {
+                    inChatSound.play().catch(e => console.log('Audio playback blocked'));
+                }
+            }
+            lastActiveChatCount = receivedMessages.length;
+
             data.messages.forEach(msg => {
                 const msgDiv = document.createElement('div');
                 const isSent = msg.sender_id != currentChatUser;
@@ -487,6 +544,7 @@ async function loadMessages() {
             });
             container.scrollTop = container.scrollHeight;
         } else if (data.success && data.messages.length === 0) {
+            lastActiveChatCount = 0;
             container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No messages yet. Start the conversation!</p>';
         }
     } catch (error) {
@@ -915,6 +973,20 @@ function showSettingsModal() {
                 </svg>
                 Logout
             </button>
+            <div class="settings-menu-item no-hover" style="display: flex; justify-content: space-between; align-items: center; cursor: default;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
+                    Notification Sounds
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="notifToggle" ${notificationsEnabled ? 'checked' : ''}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
         </div>
     `;
     document.getElementById('modal').classList.remove('hidden');
@@ -923,6 +995,35 @@ function showSettingsModal() {
     document.getElementById('menuNotifications').addEventListener('click', showNotificationsModal);
     document.getElementById('menuDeleteAccount').addEventListener('click', showDeleteAccountConfirm);
     document.getElementById('menuLogout').addEventListener('click', logout);
+
+    const notifToggle = document.getElementById('notifToggle');
+    notifToggle.addEventListener('change', async function () {
+        notificationsEnabled = this.checked;
+        const formData = new FormData();
+        formData.append('action', 'toggle_notifications');
+        formData.append('enabled', notificationsEnabled ? '1' : '0');
+
+        try {
+            const response = await fetch('../api/settings.php', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (!data.success) {
+                dialog.error('Failed to save notification settings');
+                // Revert toggle if failed
+                notificationsEnabled = !notificationsEnabled;
+                this.checked = notificationsEnabled;
+            } else {
+                // Play a test sound to confirm
+                if (notificationsEnabled) {
+                    newMessageSound.play().catch(e => console.log('Autoplay blocked'));
+                }
+            }
+        } catch (error) {
+            console.error('Settings error:', error);
+        }
+    });
 }
 
 function showEditProfile() {

@@ -18,13 +18,29 @@ $db = $database->getConnection();
 $user_id = $_SESSION['user_id'];
 
 if ($action === 'get_profile') {
-    $query = "SELECT id, username, email, profile_image, created_at FROM users WHERE id = :user_id";
+    $query = "SELECT id, username, email, profile_image, notifications_enabled, created_at FROM users WHERE id = :user_id";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':user_id', $user_id);
     $stmt->execute();
 
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     echo json_encode(['success' => true, 'user' => $user]);
+}
+
+if ($action === 'toggle_notifications') {
+    $enabled = isset($_POST['enabled']) ? (int) $_POST['enabled'] : 1;
+
+    $query = "UPDATE users SET notifications_enabled = :enabled WHERE id = :user_id";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':enabled', $enabled);
+    $stmt->bindParam(':user_id', $user_id);
+
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true, 'message' => 'Notification settings updated']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to update settings']);
+    }
+    exit();
 }
 
 if ($action === 'upload_profile_image') {

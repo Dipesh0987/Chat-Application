@@ -61,9 +61,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Poll for chat list updates every 5 seconds (real-time updates)
     chatListInterval = setInterval(loadChats, 5000);
 
-    // Heartbeat: update online status every 30 seconds
+    // Heartbeat: update online status every 20 seconds
     updateOnlineStatus();
-    setInterval(updateOnlineStatus, 30000);
+    setInterval(updateOnlineStatus, 20000);
 
     // Detect browser close/tab close and set user offline
     window.addEventListener('beforeunload', function () {

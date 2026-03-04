@@ -162,6 +162,7 @@ if ($action === 'update_online_status') {
         $stmt->execute();
 
         if ($is_online) {
+            // Success: User is active, so mark undelivered messages as delivered
             $mark_delivered = "UPDATE messages SET is_delivered = TRUE WHERE receiver_id = :user_id AND is_delivered = FALSE";
             $stmt_delivered = $db->prepare($mark_delivered);
             $stmt_delivered->bindParam(':user_id', $user_id);

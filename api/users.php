@@ -187,6 +187,18 @@ if ($action === 'get_friend_requests') {
 if ($action === 'get_chats') {
     $user_id = $_SESSION['user_id'];
 
+    // Update current user's online status
+    $update_status = "UPDATE users SET is_online = TRUE, last_seen = NOW() WHERE id = :user_id";
+    $stmt_status = $db->prepare($update_status);
+    $stmt_status->bindParam(':user_id', $user_id);
+    $stmt_status->execute();
+
+    // Mark all undelivered messages for this user as delivered
+    $mark_delivered = "UPDATE messages SET is_delivered = TRUE WHERE receiver_id = :user_id AND is_delivered = FALSE";
+    $stmt_delivered = $db->prepare($mark_delivered);
+    $stmt_delivered->bindParam(':user_id', $user_id);
+    $stmt_delivered->execute();
+
     $query = "SELECT 
               CASE 
                 WHEN m.sender_id = :user_id THEN m.receiver_id 

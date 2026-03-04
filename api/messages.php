@@ -79,13 +79,21 @@ if ($action === 'send') {
         exit();
     }
 
-    // Check if receiver is online
-    $check_online = "SELECT is_online FROM users WHERE id = :receiver_id";
+    // Check if receiver is online (robust check: flag or active within last 2 mins)
+    $check_online = "SELECT is_online, last_seen FROM users WHERE id = :receiver_id";
     $stmt_online = $db->prepare($check_online);
     $stmt_online->bindParam(':receiver_id', $receiver_id);
     $stmt_online->execute();
     $receiver = $stmt_online->fetch(PDO::FETCH_ASSOC);
-    $is_delivered = ($receiver && $receiver['is_online']) ? 1 : 0;
+
+    $is_delivered = 0;
+    if ($receiver) {
+        $last_seen = strtotime($receiver['last_seen']);
+        $diff = time() - $last_seen;
+        if ($receiver['is_online'] || $diff < 120) {
+            $is_delivered = 1;
+        }
+    }
 
     $query = "INSERT INTO messages (sender_id, receiver_id, message, is_delivered) VALUES (:sender_id, :receiver_id, :message, :is_delivered)";
     $stmt = $db->prepare($query);

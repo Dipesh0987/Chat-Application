@@ -1343,10 +1343,12 @@ body {
     font-weight: 500;
 }
 
+/* Info Section */
 .info-section {
     padding: 20px;
 }
 
+/* Chat Actions Menu */
 .chat-actions-menu {
     display: flex;
     flex-direction: column;

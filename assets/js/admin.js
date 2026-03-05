@@ -1,16 +1,18 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     loadUsers();
     document.getElementById('logoutBtn').addEventListener('click', logout);
 });
+
+
 
 async function loadUsers() {
     try {
         const response = await fetch('../api/admin.php?action=get_users');
         const data = await response.json();
-        
+
         const userList = document.getElementById('userList');
         userList.innerHTML = '';
-        
+
         if (data.success && data.users.length > 0) {
             const table = document.createElement('table');
             table.className = 'user-table';
@@ -29,14 +31,14 @@ async function loadUsers() {
                 <tbody id="userTableBody"></tbody>
             `;
             userList.appendChild(table);
-            
+
             const tbody = document.getElementById('userTableBody');
             data.users.forEach(user => {
                 const status = user.is_banned ? `Banned until ${user.ban_until}` : 'Active';
-                const profileImg = user.profile_image 
-                    ? `../${user.profile_image}` 
+                const profileImg = user.profile_image
+                    ? `../${user.profile_image}`
                     : '../assets/images/default-avatar.svg';
-                
+
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td><img src="${profileImg}" alt="Profile" class="admin-profile-img"></td>
@@ -65,17 +67,17 @@ async function loadUsers() {
 
 async function warnUser(userId) {
     if (!confirm('Issue warning to this user?')) return;
-    
+
     const formData = new FormData();
     formData.append('action', 'warn_user');
     formData.append('user_id', userId);
-    
+
     try {
         const response = await fetch('../api/admin.php', {
             method: 'POST',
             body: formData
         });
-        
+
         const data = await response.json();
         if (data.success) {
             alert(data.message);
@@ -91,17 +93,17 @@ async function warnUser(userId) {
 
 async function banUser(userId) {
     if (!confirm('Ban this user for 3 days?')) return;
-    
+
     const formData = new FormData();
     formData.append('action', 'ban_user');
     formData.append('user_id', userId);
-    
+
     try {
         const response = await fetch('../api/admin.php', {
             method: 'POST',
             body: formData
         });
-        
+
         const data = await response.json();
         if (data.success) {
             alert(data.message);
@@ -117,17 +119,17 @@ async function banUser(userId) {
 
 async function deleteUser(userId) {
     if (!confirm('Permanently delete this user?')) return;
-    
+
     const formData = new FormData();
     formData.append('action', 'delete_user');
     formData.append('user_id', userId);
-    
+
     try {
         const response = await fetch('../api/admin.php', {
             method: 'POST',
             body: formData
         });
-        
+
         const data = await response.json();
         if (data.success) {
             alert(data.message);
@@ -144,11 +146,11 @@ async function deleteUser(userId) {
 async function logout() {
     const formData = new FormData();
     formData.append('action', 'logout');
-    
+
     await fetch('../api/auth.php', {
         method: 'POST',
         body: formData
     });
-    
+
     window.location.href = '../index.php';
 }

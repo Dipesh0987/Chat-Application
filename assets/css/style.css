@@ -1353,6 +1353,7 @@ body {
     gap: 5px;
 }
 
+/* Chat Action Item */
 .chat-action-item {
     display: flex;
     align-items: center;
@@ -1368,6 +1369,7 @@ body {
     text-align: left;
 }
 
+/* Chat Action Item Hover */
 .chat-action-item:hover {
     background: #2a2a2a;
 }

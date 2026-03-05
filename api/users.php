@@ -241,6 +241,7 @@ if ($action === 'get_chats') {
         $chat['is_online'] = $status_info['is_online'] ? 1 : 0;
     }
 
+
     echo json_encode(['success' => true, 'chats' => $chats]);
 }
 

@@ -18,11 +18,13 @@
     --font-mono: 'Share Tech Mono', monospace;
 }
 
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
+
 
 body {
     font-family: var(--font-body);
@@ -34,6 +36,7 @@ body {
     overflow: hidden;
 }
 
+
 .container {
     display: flex;
     justify-content: center;
@@ -41,6 +44,7 @@ body {
     min-height: 100vh;
     backdrop-filter: blur(2px);
 }
+
 
 .auth-box {
     background: var(--bg-panel);
@@ -1246,6 +1250,7 @@ body {
     background: var(--neon-green);
     box-shadow: 0 0 8px var(--neon-green);
 }
+
 
 
 .online-status.offline {

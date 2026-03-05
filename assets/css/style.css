@@ -1808,6 +1808,7 @@ body {
         border-radius: 50%;
     }
 
+    
     .settings-menu-item.no-hover:hover {
         transform: none;
         background: none;

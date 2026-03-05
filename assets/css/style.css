@@ -1639,6 +1639,7 @@ body {
     transition: all 0.3s ease;
 }
 
+/* Close Lightbox Button Hover */
 .image-lightbox .close-lightbox:hover {
     background: rgba(255, 255, 255, 0.2);
     transform: rotate(90deg);
@@ -1654,6 +1655,7 @@ body {
     text-shadow: 0 0 2px rgba(0, 243, 255, 0.2);
 }
 
+/* Authentication Links */
 .auth-box a,
 .modal-content a,
 #registerLink,
@@ -1665,6 +1667,7 @@ body {
     text-shadow: 0 0 5px rgba(0, 243, 255, 0.4);
 }
 
+/* Authentication Links Hover */
 .auth-box a:hover,
 .modal-content a:hover {
     text-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan);
@@ -1677,12 +1680,14 @@ body {
     height: 6px;
 }
 
+/* Scrollbar Thumb */
 ::-webkit-scrollbar-thumb {
     background: var(--neon-cyan);
     border-radius: 10px;
     box-shadow: 0 0 5px var(--neon-cyan);
 }
 
+/* Scrollbar Track */
 ::-webkit-scrollbar-track {
     background: var(--bg-dark);
 }

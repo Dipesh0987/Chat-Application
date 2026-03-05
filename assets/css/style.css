@@ -1326,6 +1326,7 @@ body {
     border-bottom: 1px solid #333;
 }
 
+/* Profile Image Large */
 .profile-img-large {
     width: 120px;
     height: 120px;
@@ -1337,6 +1338,7 @@ body {
     box-shadow: 0 0 15px var(--neon-cyan);
 }
 
+/* Info User Profile */
 .info-user-profile h2 {
     margin: 0;
     font-size: 1.5rem;

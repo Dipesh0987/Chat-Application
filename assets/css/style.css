@@ -141,6 +141,7 @@ body {
     color: #721c24;
 }
 
+/* chat container */
 .chat-container {
     display: flex;
     height: 100vh;

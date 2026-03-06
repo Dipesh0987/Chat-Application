@@ -693,8 +693,11 @@ body {
 }
 
 .user-email {
-    color: var(--text-secondary);
-    font-size: 13px;
+    font-family: var(--font-mono);
+    color: var(--neon-cyan);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);
 }
 
 .user-warnings {

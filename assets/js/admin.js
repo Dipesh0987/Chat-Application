@@ -37,7 +37,7 @@ async function loadUsers() {
                 const status = user.is_banned ? `Banned until ${user.ban_until}` : 'Active';
                 const profileImg = user.profile_image
                     ? `../${user.profile_image}`
-                    : '../assets/images/default-avatar.svg';
+                    : '../assets/images/default-avatar.png';
 
                 const statusClass = user.is_banned ? 'status-banned' : 'status-active';
                 const statusText = user.is_banned ? 'Banned' : 'Active';

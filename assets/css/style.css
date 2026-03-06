@@ -67,6 +67,7 @@ body {
     text-align: center;
 }
 
+
 .auth-box input {
     width: 100%;
     padding: 12px;
@@ -77,11 +78,13 @@ body {
     font-size: 14px;
     color: white;
     outline: none;
+
     transition: all 0.3s ease;
 }
 
 .auth-box input:focus {
     border-color: var(--neon-cyan);
+
     box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
 }
 

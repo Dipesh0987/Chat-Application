@@ -39,15 +39,19 @@ async function loadUsers() {
                     ? `../${user.profile_image}`
                     : '../assets/images/default-avatar.svg';
 
+                const statusClass = user.is_banned ? 'status-banned' : 'status-active';
+                const statusText = user.is_banned ? 'Banned' : 'Active';
+                const banExpiry = user.is_banned ? `<br><small class="ban-expiry">Until: ${user.ban_until}</small>` : '';
+
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td><img src="${profileImg}" alt="Profile" class="admin-profile-img"></td>
-                    <td>${user.id}</td>
-                    <td>${user.username}</td>
-                    <td>${user.email}</td>
-                    <td>${user.warnings}</td>
-                    <td>${status}</td>
-                    <td>
+                    <td class="user-id">${user.id}</td>
+                    <td class="user-username">${user.username}</td>
+                    <td class="user-email">${user.email}</td>
+                    <td class="user-warnings">${user.warnings}</td>
+                    <td class="user-status"><span class="${statusClass}">${statusText}</span>${banExpiry}</td>
+                    <td class="user-actions">
                         <button onclick="warnUser(${user.id})" class="btn-warn">Warn</button>
                         <button onclick="banUser(${user.id})" class="btn-ban">Ban</button>
                         <button onclick="deleteUser(${user.id})" class="btn-delete">Delete</button>

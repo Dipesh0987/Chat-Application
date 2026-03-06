@@ -159,6 +159,7 @@ body {
     box-shadow: 5px 0 15px rgba(0, 0, 0, 0.5);
     z-index: 10;
 }
+
 /* sidebar header */
 .sidebar-header {
     padding: 20px;
@@ -181,6 +182,7 @@ body {
     text-shadow: 0 0 5px var(--neon-cyan);
 }
 
+/* add button */
 .add-btn {
     width: calc(100% - 30px);
     margin: 15px;

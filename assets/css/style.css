@@ -159,7 +159,7 @@ body {
     box-shadow: 5px 0 15px rgba(0, 0, 0, 0.5);
     z-index: 10;
 }
-
+/* sidebar header */
 .sidebar-header {
     padding: 20px;
     background: var(--bg-header);

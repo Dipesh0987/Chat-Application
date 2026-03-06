@@ -149,6 +149,7 @@ body {
     backdrop-filter: blur(15px);
 }
 
+/* sidebar */
 .sidebar {
     width: 350px;
     background: var(--bg-panel);

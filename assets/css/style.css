@@ -111,11 +111,13 @@ body {
     box-shadow: 0 0 20px var(--neon-cyan);
 }
 
+
 .auth-box p {
     margin-top: 15px;
     text-align: center;
     color: #666;
 }
+
 
 .auth-box a {
     color: #0084ff;

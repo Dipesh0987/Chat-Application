@@ -86,6 +86,8 @@ document.addEventListener('DOMContentLoaded', function () {
             updateOnlineStatus();
         }
     });
+
+    initSidebarResize();
 });
 
 async function updateOnlineStatus() {

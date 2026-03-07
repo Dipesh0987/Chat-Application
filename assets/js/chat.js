@@ -303,16 +303,18 @@ function openChat(userId, username) {
 
     document.getElementById('chatHeader').innerHTML = `
         <div class="chat-header-info">
-            <button class="back-btn-mobile" id="mobileBackBtn">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
-            </button>
-            <strong>
-                ${username}
-                <span id="headerOnlineStatus" class="online-status offline"></span>
-            </strong>
+            <div class="header-left">
+                <button class="back-btn-mobile" id="mobileBackBtn" title="Back">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                </button>
+                <strong>
+                    ${username}
+                    <span id="headerOnlineStatus" class="online-status offline"></span>
+                </strong>
+            </div>
         </div>
         <button id="toggleInfoBtn" class="icon-btn" title="Chat Info">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

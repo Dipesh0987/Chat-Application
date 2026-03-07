@@ -807,6 +807,18 @@ body {
     box-shadow: 0 0 15px var(--neon-magenta);
 }
 
+.chat-header-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .user-info {
     display: flex;
     align-items: center;
@@ -1776,14 +1788,21 @@ body {
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-right: 15px;
         background: transparent;
         border: 1px solid var(--neon-cyan);
         color: var(--neon-cyan);
         cursor: pointer;
-        padding: 5px;
+        padding: 4px;
         border-radius: 6px;
-        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        box-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
+        transition: all 0.3s ease;
+        width: 30px;
+        height: 30px;
+    }
+
+    .back-btn-mobile:hover {
+        background: rgba(0, 243, 255, 0.1);
+        box-shadow: 0 0 12px var(--neon-cyan);
     }
 }
 

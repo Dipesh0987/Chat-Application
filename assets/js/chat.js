@@ -1586,10 +1586,13 @@ function initSidebarResize() {
     document.addEventListener('mousemove', function (e) {
         if (!isResizing) return;
 
+        // Disable resizing on mobile
+        if (window.innerWidth <= 768) return;
+
         let newWidth = e.clientX;
 
         // Boundaries
-        if (newWidth < 200) newWidth = 200;
+        if (newWidth < 260) newWidth = 260; // Increased minWidth to prevent element clipping
         if (newWidth > 600) newWidth = 600;
 
         sidebar.style.width = newWidth + 'px';

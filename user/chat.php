@@ -66,101 +66,98 @@ if (!isset($_SESSION['user_id']) || $_SESSION['is_admin']) {
                     </svg>
                 </button>
             </div>
-        <div class="messages" id="messagesContainer"></div>
-        <div class="file-upload-area hidden" id="fileUploadArea">
-            <div class="file-preview" id="filePreview"></div>
-            <button class="remove-file-btn" onclick="removeFile()">Remove</button>
-        </div>
-        <div class="message-input hidden" id="messageInputArea">
-            <div class="input-actions">
-                <button class="attachment-btn" id="attachmentBtn" title="Attach file">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path
-                            d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48">
-                        </path>
-                    </svg>
-                </button>
-                <button class="emoji-btn" id="emojiBtn" title="Emoji">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-                        <line x1="9" y1="9" x2="9.01" y2="9"></line>
-                        <line x1="15" y1="9" x2="15.01" y2="9"></line>
-                    </svg>
-                </button>
+            <div class="messages" id="messagesContainer"></div>
+            <div class="file-upload-area hidden" id="fileUploadArea">
+                <div class="file-preview" id="filePreview"></div>
+                <button class="remove-file-btn" onclick="removeFile()">Remove</button>
             </div>
-            <input type="file" id="fileInput" style="display: none;"
-                accept="image/*,video/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,.zip,.rar">
-            <input type="text" id="messageInput" placeholder="Type a message...">
-            <button id="sendBtn">Send</button>
+            <div class="message-input hidden" id="messageInputArea">
+                <div class="input-actions">
+                    <button class="attachment-btn" id="attachmentBtn" title="Attach file">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48">
+                            </path>
+                        </svg>
+                    </button>
+                    <button class="emoji-btn" id="emojiBtn" title="Emoji">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                            <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                            <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                        </svg>
+                    </button>
+                </div>
+                <input type="file" id="fileInput" style="display: none;"
+                    accept="image/*,video/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,.zip,.rar">
+                <input type="text" id="messageInput" placeholder="Type a message...">
+                <button id="sendBtn">Send</button>
+            </div>
+            <div class="emoji-picker hidden" id="emojiPicker">
+                <div class="emoji-grid" id="emojiGrid"></div>
+            </div>
         </div>
-        <div class="emoji-picker hidden" id="emojiPicker">
-            <div class="emoji-grid" id="emojiGrid"></div>
-        </div>
-    </div>
-    <div class="chat-info-sidebar hidden" id="chatInfoSidebar">
-        <div class="sidebar-close-container">
-            <button id="closeInfoBtn" class="close-info-btn">&times;</button>
-        </div>
-        <div class="info-user-profile">
-            <img id="infoUserProfileImg" src="../assets/images/default-avatar.png" alt="Profile"
-                class="profile-img-large">
-            <h2 id="infoUserName">Name</h2>
-        </div>
+        <div class="chat-info-sidebar hidden" id="chatInfoSidebar">
+            <div class="sidebar-close-container">
+                <button id="closeInfoBtn" class="close-info-btn">&times;</button>
+            </div>
+            <div class="info-user-profile">
+                <img id="infoUserProfileImg" src="../assets/images/default-avatar.png" alt="Profile"
+                    class="profile-img-large">
+                <h2 id="infoUserName">Name</h2>
+            </div>
 
-        <!-- Chat Actions Menu -->
-        <div class="info-section">
-            <div class="chat-actions-menu">
-                <button class="chat-action-item" id="clearChatBtn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="15" y1="9" x2="9" y2="15"></line>
-                    </svg>
-                    <span>Clear chat</span>
-                </button>
-                <button class="chat-action-item" id="blockUserBtn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
-                    </svg>
-                    <span>Block user</span>
-                </button>
-                <button class="chat-action-item" id="reportUserBtn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path
-                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
-                        </path>
-                        <line x1="12" y1="9" x2="12" y2="13"></line>
-                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                    </svg>
-                    <span>Report user</span>
-                </button>
-                <button class="chat-action-item danger" id="deleteChatBtn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
-                        </path>
-                    </svg>
-                    <span>Delete chat</span>
-                </button>
-            </div>
-        </div>
+            <!-- Chat Actions Menu -->
+            <div class="info-section">
+                <div class="chat-actions-menu">
 
-        <div class="info-section">
-            <div class="info-section-header">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                </svg>
-                <span>Media, links and docs</span>
-                <span id="mediaCount" class="count-badge">0</span>
+                    <button class="chat-action-item" id="blockUserBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                        </svg>
+                        <span>Block user</span>
+                    </button>
+                    <button class="chat-action-item" id="reportUserBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path
+                                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                            </path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        <span>Report user</span>
+                    </button>
+                    <button class="chat-action-item danger" id="deleteChatBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                            </path>
+                        </svg>
+                        <span>Delete chat</span>
+                    </button>
+                </div>
             </div>
-            <div id="mediaGrid" class="media-grid"></div>
-            <div id="docsList" class="docs-list"></div>
+
+            <div class="info-section">
+                <div class="info-section-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>Media, links and docs</span>
+                    <span id="mediaCount" class="count-badge">0</span>
+                </div>
+                <div id="mediaGrid" class="media-grid"></div>
+                <div id="docsList" class="docs-list"></div>
+            </div>
         </div>
-    </div>
     </div>
 
     <div id="modal" class="modal hidden">

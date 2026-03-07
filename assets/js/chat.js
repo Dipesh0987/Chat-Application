@@ -1083,42 +1083,12 @@ function toggleChatInfoSidebar() {
 }
 
 function attachChatActionListeners() {
-    document.getElementById('clearChatBtn').onclick = clearChat;
     document.getElementById('blockUserBtn').onclick = blockUser;
     document.getElementById('reportUserBtn').onclick = reportUser;
     document.getElementById('deleteChatBtn').onclick = deleteChat;
 }
 
-async function clearChat() {
-    if (!currentChatUser) return;
 
-    const confirmed = await dialog.confirm('Clear all messages in this chat? This cannot be undone.');
-    if (!confirmed) return;
-
-    const formData = new FormData();
-    formData.append('action', 'clear_chat');
-    formData.append('user_id', currentChatUser);
-
-    try {
-        const response = await fetch('../api/messages.php', {
-            method: 'POST',
-            body: formData
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            dialog.success('Chat cleared successfully');
-            loadMessages();
-            loadChats(); // Refresh chat list
-            toggleChatInfoSidebar();
-        } else {
-            dialog.error('Failed to clear chat');
-        }
-    } catch (error) {
-        console.error('Clear chat error:', error);
-        dialog.error('Failed to clear chat');
-    }
-}
 
 async function blockUser() {
     if (!currentChatUser) return;

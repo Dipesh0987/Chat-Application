@@ -249,25 +249,7 @@ if ($action === 'get_media') {
     echo json_encode(['success' => true, 'media' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
 }
 
-if ($action === 'clear_chat') {
-    $other_user_id = $_POST['user_id'] ?? 0;
 
-    $query = "DELETE FROM messages 
-              WHERE (sender_id = :user_id AND receiver_id = :other_user_id) 
-                 OR (sender_id = :other_user_id2 AND receiver_id = :user_id2)";
-
-    $stmt = $db->prepare($query);
-    $stmt->bindParam(':user_id', $user_id);
-    $stmt->bindParam(':user_id2', $user_id);
-    $stmt->bindParam(':other_user_id', $other_user_id);
-    $stmt->bindParam(':other_user_id2', $other_user_id);
-
-    if ($stmt->execute()) {
-        echo json_encode(['success' => true]);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Failed to clear chat']);
-    }
-}
 
 if ($action === 'delete_chat') {
     $other_user_id = $_POST['user_id'] ?? 0;

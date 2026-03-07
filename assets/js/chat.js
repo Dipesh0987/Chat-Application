@@ -1559,15 +1559,61 @@ function removeFile() {
     document.getElementById('fileInput').value = '';
 }
 
+// Sidebar resizing logic
+function initSidebarResize() {
+    const resizer = document.getElementById('chatResizer');
+    const sidebar = document.getElementById('chatSidebar');
+    let isResizing = false;
+
+    if (!resizer || !sidebar) return;
+
+    // Load saved width
+    const savedWidth = localStorage.getItem('sidebarWidth');
+    if (savedWidth) {
+        sidebar.style.width = savedWidth + 'px';
+    }
+
+    resizer.addEventListener('mousedown', function (e) {
+        isResizing = true;
+        document.body.style.cursor = 'col-resize';
+        resizer.classList.add('active');
+        // Prevent text selection while resizing
+        document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', function (e) {
+        if (!isResizing) return;
+
+        let newWidth = e.clientX;
+
+        // Boundaries
+        if (newWidth < 200) newWidth = 200;
+        if (newWidth > 600) newWidth = 600;
+
+        sidebar.style.width = newWidth + 'px';
+        localStorage.setItem('sidebarWidth', newWidth);
+    });
+
+    document.addEventListener('mouseup', function (e) {
+        if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = 'default';
+            resizer.classList.remove('active');
+            document.body.style.userSelect = 'auto';
+        }
+    });
+}
+
 // Toggle emoji picker
 function toggleEmojiPicker() {
     const picker = document.getElementById('emojiPicker');
     picker.classList.toggle('hidden');
 
     if (!picker.classList.contains('hidden')) {
-        const emojis = ['😀', '😂', '😍', '😊', '😎', '😢', '😡', '👍', '👎', '❤️', '🎉', '🔥', '⭐', '✅', '❌', '💯', '🙏', '👏', '💪', '🤔', '😴', '🤗', '😱', '🤩', '😇'];
         const grid = document.getElementById('emojiGrid');
         grid.innerHTML = '';
+
+        const emojis = ['😀', '😂', '😍', '😊', '😎', '😢', '😡', '👍', '👎', '❤️', '🎉', '🔥', '⭐', '✅', '❌', '💯', '🙏', '👏', '💪', '🤔', '😴', '🤗', '😱', '🤩', '😇'];
 
         emojis.forEach(emoji => {
             const item = document.createElement('div');

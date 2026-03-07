@@ -17,7 +17,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['is_admin']) {
 
 <body>
     <div class="chat-container">
-        <div class="sidebar">
+        <div class="sidebar" id="chatSidebar">
             <div class="sidebar-header">
                 <div class="user-info">
                     <img id="userProfileImg" src="../assets/images/default-avatar.png" alt="Profile"
@@ -52,6 +52,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['is_admin']) {
                 <div id="requestList"></div>
             </div>
         </div>
+        <div class="resizer" id="chatResizer"></div>
         <div class="chat-area">
             <div class="chat-header" id="chatHeader">
                 <div class="chat-header-info">

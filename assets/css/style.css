@@ -1025,7 +1025,6 @@ body {
 .message-actions-dropdown {
     position: absolute;
     top: 35px;
-    right: 5px;
     background: #1e1e1e;
     border: 1px solid var(--neon-cyan);
     border-radius: 10px;
@@ -1034,6 +1033,14 @@ body {
     min-width: 160px;
     overflow: hidden;
     animation: dropdownFade 0.2s ease-out;
+}
+
+.message.sent .message-actions-dropdown {
+    right: 5px;
+}
+
+.message.received .message-actions-dropdown {
+    left: 5px;
 }
 
 @keyframes dropdownFade {

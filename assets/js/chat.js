@@ -497,11 +497,11 @@ async function loadMessages() {
         if (emptyState) emptyState.remove();
 
         data.messages.forEach(msg => {
-            let msgDiv = container.querySelector(`[data-id="${msg.id}"]`);
+            const msgId = `msg-${msg.id}`;
+            let msgDiv = document.getElementById(msgId);
             const isSent = msg.sender_id != currentChatUser;
 
             if (msgDiv) {
-                // Update status ticks for sent messages if they changed
                 if (isSent) {
                     const statusTicks = msgDiv.querySelector('.status-ticks');
                     if (statusTicks) {
@@ -529,10 +529,9 @@ async function loadMessages() {
                     }
                 }
             } else {
-                // Create new message element
                 msgDiv = document.createElement('div');
                 msgDiv.className = isSent ? 'message sent' : 'message received';
-                msgDiv.dataset.id = msg.id;
+                msgDiv.id = msgId;
 
                 let content = '';
                 if (msg.message_type === 'image') {
@@ -545,8 +544,8 @@ async function loadMessages() {
                 } else if (msg.message_type === 'video') {
                     content = `
                         <div class="message-file">
-                            <video controls playsinline webkit-playsinline preload="metadata" style="max-width: 250px; border-radius: 8px;">
-                                <source src="../${msg.file_path}" type="video/mp4">
+                            <video src="../${msg.file_path}" controls playsinline webkit-playsinline preload="auto" style="max-width: 250px; border-radius: 8px; display: block;">
+                                Your browser does not support the video tag.
                             </video>
                             ${msg.message !== '[video]' ? `<p>${msg.message}</p>` : ''}
                         </div>
@@ -596,7 +595,6 @@ async function loadMessages() {
             }
         });
 
-        // Scroll to bottom if we added messages and user was already at bottom (or it's the first load)
         if (newMessagesAdded && (isAtBottom || container.children.length === data.messages.length)) {
             container.scrollTop = container.scrollHeight;
         }

@@ -372,6 +372,7 @@ body {
     word-wrap: break-word;
     font-size: 14px;
     line-height: 1.5;
+    overflow: hidden;
 }
 
 .message.sent {

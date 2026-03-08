@@ -462,29 +462,79 @@ async function loadMessages() {
         const data = await response.json();
 
         const container = document.getElementById('messagesContainer');
-        container.innerHTML = '';
 
-        if (data.success && data.messages.length > 0) {
-            // In-Chat Message Sound Logic
-            // Compare current message count with previous count
-            // Also ensure we only play for RECEIVED messages (not own messages)
-            const receivedMessages = data.messages.filter(m => m.sender_id == currentChatUser);
-            if (notificationsEnabled && receivedMessages.length > lastActiveChatCount) {
-                // If this isn't the first load of this chat
-                if (lastActiveChatCount > 0) {
-                    inChatSound.play().catch(e => console.log('Audio playback blocked'));
-                }
+        if (!data.success) return;
+
+        if (data.messages.length === 0) {
+            lastActiveChatCount = 0;
+            container.dataset.chatUserId = currentChatUser;
+            container.innerHTML = '<p class="empty-state-msg" style="text-align: center; color: #999; padding: 20px;">No messages yet. Start the conversation!</p>';
+            return;
+        }
+
+        // If chat switched, clear container
+        if (container.dataset.chatUserId != currentChatUser) {
+            container.innerHTML = '';
+            container.dataset.chatUserId = currentChatUser;
+            lastActiveChatCount = 0;
+        }
+
+        // In-Chat Message Sound Logic
+        const receivedMessages = data.messages.filter(m => m.sender_id == currentChatUser);
+        if (notificationsEnabled && receivedMessages.length > lastActiveChatCount) {
+            if (lastActiveChatCount > 0) {
+                inChatSound.play().catch(e => console.log('Audio playback blocked'));
             }
-            lastActiveChatCount = receivedMessages.length;
+        }
+        lastActiveChatCount = receivedMessages.length;
 
-            data.messages.forEach(msg => {
-                const msgDiv = document.createElement('div');
-                const isSent = msg.sender_id != currentChatUser;
+        // Check if user is at the bottom before adding messages
+        const isAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 50;
+        let newMessagesAdded = false;
+
+        // Remove empty state if it exists
+        const emptyState = container.querySelector('.empty-state-msg');
+        if (emptyState) emptyState.remove();
+
+        data.messages.forEach(msg => {
+            let msgDiv = container.querySelector(`[data-id="${msg.id}"]`);
+            const isSent = msg.sender_id != currentChatUser;
+
+            if (msgDiv) {
+                // Update status ticks for sent messages if they changed
+                if (isSent) {
+                    const statusTicks = msgDiv.querySelector('.status-ticks');
+                    if (statusTicks) {
+                        const isReadInUI = statusTicks.querySelector('.tick.read') !== null;
+                        const tickCount = statusTicks.querySelectorAll('svg').length;
+                        const isDeliveredInUI = tickCount > 1 || isReadInUI;
+
+                        if (msg.is_read !== isReadInUI || msg.is_delivered !== isDeliveredInUI) {
+                            const tickColor = msg.is_read ? 'tick read' : 'tick';
+                            if (msg.is_read || msg.is_delivered) {
+                                statusTicks.innerHTML = `
+                                    <svg class="${tickColor}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                    <svg class="${tickColor}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: -10px;">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>`;
+                            } else {
+                                statusTicks.innerHTML = `
+                                    <svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>`;
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Create new message element
+                msgDiv = document.createElement('div');
                 msgDiv.className = isSent ? 'message sent' : 'message received';
+                msgDiv.dataset.id = msg.id;
 
                 let content = '';
-
-                // Handle different message types
                 if (msg.message_type === 'image') {
                     content = `
                         <div class="message-file">
@@ -495,7 +545,7 @@ async function loadMessages() {
                 } else if (msg.message_type === 'video') {
                     content = `
                         <div class="message-file">
-                            <video controls style="max-width: 250px; border-radius: 8px;">
+                            <video controls playsinline webkit-playsinline preload="metadata" style="max-width: 250px; border-radius: 8px;">
                                 <source src="../${msg.file_path}" type="video/mp4">
                             </video>
                             ${msg.message !== '[video]' ? `<p>${msg.message}</p>` : ''}
@@ -514,12 +564,10 @@ async function loadMessages() {
                     content = `<p>${msg.message}</p>`;
                 }
 
-                // Add status ticks for sent messages
                 let statusIcon = '';
                 if (isSent) {
                     const tickColor = msg.is_read ? 'tick read' : 'tick';
                     if (msg.is_read || msg.is_delivered) {
-                        // Double tick for delivered and read
                         statusIcon = `
                             <div class="status-ticks">
                                 <svg class="${tickColor}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -530,7 +578,6 @@ async function loadMessages() {
                                 </svg>
                             </div>`;
                     } else {
-                        // Single tick for sent
                         statusIcon = `
                             <div class="status-ticks">
                                 <svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -545,11 +592,13 @@ async function loadMessages() {
                     <span class="time">${new Date(msg.created_at).toLocaleTimeString()} ${statusIcon}</span>
                 `;
                 container.appendChild(msgDiv);
-            });
+                newMessagesAdded = true;
+            }
+        });
+
+        // Scroll to bottom if we added messages and user was already at bottom (or it's the first load)
+        if (newMessagesAdded && (isAtBottom || container.children.length === data.messages.length)) {
             container.scrollTop = container.scrollHeight;
-        } else if (data.success && data.messages.length === 0) {
-            lastActiveChatCount = 0;
-            container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No messages yet. Start the conversation!</p>';
         }
     } catch (error) {
         console.error('Load messages error:', error);

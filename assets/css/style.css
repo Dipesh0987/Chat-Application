@@ -1097,28 +1097,48 @@ body {
 
 /* Reactions Display */
 .message-reactions {
+    position: absolute;
+    bottom: -10px;
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 8px;
+    gap: 4px;
+    z-index: 5;
+}
+
+.message.sent .message-reactions {
+    right: 15px;
+}
+
+.message.received .message-reactions {
+    left: 15px;
 }
 
 .reaction-badge {
-    background: rgba(255, 255, 255, 0.03);
+    background: #1e1e1e;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    padding: 3px 8px;
-    font-size: 11px;
+    padding: 2px 5px;
+    font-size: 13px;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 3px;
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    min-width: 24px;
+    height: 24px;
+    justify-content: center;
+    color: transparent;
+    /* hide the user count text if any, or keep it */
+}
+
+.reaction-badge span {
     color: #aaa;
+    font-size: 10px;
 }
 
 .reaction-badge:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: #2a2a2a;
     border-color: rgba(255, 255, 255, 0.2);
 }
 

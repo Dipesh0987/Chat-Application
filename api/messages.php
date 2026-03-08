@@ -95,12 +95,18 @@ if ($action === 'send') {
         }
     }
 
-    $query = "INSERT INTO messages (sender_id, receiver_id, message, is_delivered) VALUES (:sender_id, :receiver_id, :message, :is_delivered)";
+    $reply_to = $_POST['reply_to'] ?? null;
+    if ($reply_to === '') {
+        $reply_to = null;
+    }
+
+    $query = "INSERT INTO messages (sender_id, receiver_id, message, is_delivered, reply_to) VALUES (:sender_id, :receiver_id, :message, :is_delivered, :reply_to)";
     $stmt = $db->prepare($query);
     $stmt->bindParam(':sender_id', $user_id);
     $stmt->bindParam(':receiver_id', $receiver_id);
     $stmt->bindParam(':message', $message);
     $stmt->bindParam(':is_delivered', $is_delivered);
+    $stmt->bindParam(':reply_to', $reply_to);
 
     if ($stmt->execute()) {
         $message_id = $db->lastInsertId();
@@ -164,9 +170,14 @@ if ($action === 'get') {
     $stmt_read->bindParam(':receiver_id', $user_id);
     $stmt_read->execute();
 
-    $query = "SELECT m.*, u.username as sender_name 
+    $query = "SELECT m.*, u.username as sender_name,
+              p.message as reply_message, p.message_type as reply_message_type, pu.username as reply_to_username, p.is_unsent as reply_is_unsent,
+              (SELECT GROUP_CONCAT(CONCAT(mr.user_id, ':', mr.emoji) SEPARATOR '|') 
+               FROM message_reactions mr WHERE mr.message_id = m.id) as reactions
               FROM messages m 
               JOIN users u ON m.sender_id = u.id
+              LEFT JOIN messages p ON m.reply_to = p.id
+              LEFT JOIN users pu ON p.sender_id = pu.id
               WHERE (m.sender_id = :user_id AND m.receiver_id = :other_user_id) 
                  OR (m.sender_id = :other_user_id2 AND m.receiver_id = :user_id2)
               ORDER BY m.created_at ASC";
@@ -178,7 +189,31 @@ if ($action === 'get') {
     $stmt->bindParam(':other_user_id2', $other_user_id);
     $stmt->execute();
 
-    echo json_encode(['success' => true, 'messages' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+    $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Process messages to handle unsent state and format reactions
+    foreach ($messages as &$msg) {
+        if ($msg['is_unsent']) {
+            $msg['message'] = 'This message is not available';
+            $msg['message_type'] = 'text';
+            $msg['file_path'] = null;
+            $msg['file_name'] = null;
+        }
+
+        $msg['reactions_list'] = [];
+        if (isset($msg['reactions']) && $msg['reactions']) {
+            $parts = explode('|', $msg['reactions']);
+            foreach ($parts as $part) {
+                if (strpos($part, ':') !== false) {
+                    list($uid, $emoji) = explode(':', $part);
+                    $msg['reactions_list'][] = ['user_id' => $uid, 'emoji' => $emoji];
+                }
+            }
+        }
+        unset($msg['reactions']);
+    }
+
+    echo json_encode(['success' => true, 'messages' => $messages]);
 }
 
 if ($action === 'mark_delivered') {
@@ -269,4 +304,108 @@ if ($action === 'delete_chat') {
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to delete chat']);
     }
+}
+
+if ($action === 'unsend') {
+    $message_id = $_POST['message_id'] ?? 0;
+
+    $query = "UPDATE messages SET is_unsent = TRUE WHERE id = :message_id AND sender_id = :user_id";
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':message_id', $message_id);
+    $stmt->bindParam(':user_id', $user_id);
+
+    if ($stmt->execute() && $stmt->rowCount() > 0) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to unsend message or unauthorized']);
+    }
+}
+
+if ($action === 'react') {
+    $message_id = $_POST['message_id'] ?? 0;
+    $emoji = $_POST['emoji'] ?? '';
+
+    if (empty($emoji)) {
+        echo json_encode(['success' => false, 'message' => 'Emoji required']);
+        exit();
+    }
+
+    // Check if reaction already exists
+    $check = "SELECT id FROM message_reactions WHERE message_id = :message_id AND user_id = :user_id AND emoji = :emoji";
+    $stmt_check = $db->prepare($check);
+    $stmt_check->bindParam(':message_id', $message_id);
+    $stmt_check->bindParam(':user_id', $user_id);
+    $stmt_check->bindParam(':emoji', $emoji);
+    $stmt_check->execute();
+
+    if ($stmt_check->rowCount() > 0) {
+        // Remove reaction
+        $query = "DELETE FROM message_reactions WHERE message_id = :message_id AND user_id = :user_id AND emoji = :emoji";
+    } else {
+        // Add reaction
+        // First remove any existing reaction by this user for this message (if one reaction per user)
+        // Actually, user can have multiple reactions? Plan says "5 default emojis". 
+        // Usually, one user can react with multiple emojis, or one emoji per message?
+        // Let's allow toggling specific emojis.
+        $query = "INSERT INTO message_reactions (message_id, user_id, emoji) VALUES (:message_id, :user_id, :emoji)";
+    }
+
+    $stmt = $db->prepare($query);
+    $stmt->bindParam(':message_id', $message_id);
+    $stmt->bindParam(':user_id', $user_id);
+    $stmt->bindParam(':emoji', $emoji);
+
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to update reaction']);
+    }
+}
+
+if ($action === 'forward') {
+    $message_id = $_POST['message_id'] ?? 0;
+    $receiver_ids = $_POST['receiver_ids'] ?? ''; // Comma separated
+
+    if (empty($receiver_ids)) {
+        echo json_encode(['success' => false, 'message' => 'No recipients selected']);
+        exit();
+    }
+
+    // Get original message
+    $query_orig = "SELECT * FROM messages WHERE id = :message_id";
+    $stmt_orig = $db->prepare($query_orig);
+    $stmt_orig->bindParam(':message_id', $message_id);
+    $stmt_orig->execute();
+    $orig = $stmt_orig->fetch(PDO::FETCH_ASSOC);
+
+    if (!$orig || $orig['is_unsent']) {
+        echo json_encode(['success' => false, 'message' => 'Original message not found or unsent']);
+        exit();
+    }
+
+    $receivers = explode(',', $receiver_ids);
+    $success_count = 0;
+
+    foreach ($receivers as $rid) {
+        $rid = (int) $rid;
+        if ($rid === 0)
+            continue;
+
+        $query = "INSERT INTO messages (sender_id, receiver_id, message, message_type, file_path, file_name, file_size) 
+                  VALUES (:sender_id, :receiver_id, :message, :message_type, :file_path, :file_name, :file_size)";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(':sender_id', $user_id);
+        $stmt->bindParam(':receiver_id', $rid);
+        $stmt->bindParam(':message', $orig['message']);
+        $stmt->bindParam(':message_type', $orig['message_type']);
+        $stmt->bindParam(':file_path', $orig['file_path']);
+        $stmt->bindParam(':file_name', $orig['file_name']);
+        $stmt->bindParam(':file_size', $orig['file_size']);
+
+        if ($stmt->execute()) {
+            $success_count++;
+        }
+    }
+
+    echo json_encode(['success' => true, 'forwarded_count' => $success_count]);
 }

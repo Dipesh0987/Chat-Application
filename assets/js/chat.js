@@ -5,6 +5,7 @@ let chatListInterval = null;
 let notificationsEnabled = true;
 let lastUnreadCount = 0;
 let lastActiveChatCount = 0;
+let activeReplyId = null;
 
 const inChatSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
 const newMessageSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
@@ -534,6 +535,23 @@ async function loadMessages() {
                 msgDiv.id = msgId;
 
                 let content = '';
+
+                // Add reply snippet if exists
+                if (msg.reply_to) {
+                    let replyText = msg.reply_message || 'Message unavailable';
+                    if (msg.reply_is_unsent) replyText = 'This message is not available';
+                    else if (msg.reply_message_type === 'image') replyText = '📷 Photo';
+                    else if (msg.reply_message_type === 'video') replyText = '🎥 Video';
+                    else if (msg.reply_message_type === 'document') replyText = '📄 Document';
+
+                    content += `
+                        <div class="replied-message" onclick="document.getElementById('msg-${msg.reply_to}')?.scrollIntoView({behavior: 'smooth'})">
+                            <div class="replied-message-user">${msg.reply_to_username || 'User'}</div>
+                            <div class="replied-message-text">${replyText}</div>
+                        </div>
+                    `;
+                }
+
                 if (msg.message_type === 'image') {
                     content = `
                         <div class="message-file">
@@ -587,11 +605,28 @@ async function loadMessages() {
                 }
 
                 msgDiv.innerHTML = `
+                    <div class="message-actions-toggle" onclick="toggleMessageActions(event, ${msg.id})">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
                     ${content}
+                    <div class="message-reactions" id="reactions-${msg.id}">
+                        ${typeof renderReactions === 'function' ? renderReactions(msg.reactions_list, msg.id) : ''}
+                    </div>
                     <span class="time">${new Date(msg.created_at).toLocaleTimeString()} ${statusIcon}</span>
                 `;
                 container.appendChild(msgDiv);
                 newMessagesAdded = true;
+            }
+
+            // Update reactions for existing messages if they changed
+            const reactionsContainer = document.getElementById(`reactions-${msg.id}`);
+            if (reactionsContainer && typeof renderReactions === 'function') {
+                const currentReactionsHTML = renderReactions(msg.reactions_list, msg.id);
+                if (reactionsContainer.innerHTML !== currentReactionsHTML) {
+                    reactionsContainer.innerHTML = currentReactionsHTML;
+                }
             }
         });
 
@@ -616,6 +651,9 @@ async function sendMessage() {
         formData.append('receiver_id', currentChatUser);
         formData.append('file', selectedFile);
         formData.append('caption', message);
+        if (activeReplyId) {
+            formData.append('reply_to', activeReplyId);
+        }
 
         try {
             const response = await fetch('../api/upload.php', {
@@ -629,6 +667,7 @@ async function sendMessage() {
                 // dialog.success('File sent successfully!');
                 input.value = '';
                 removeFile();
+                cancelReply();
                 loadMessages();
                 loadChats();
             } else {
@@ -648,6 +687,9 @@ async function sendMessage() {
     formData.append('action', 'send');
     formData.append('receiver_id', currentChatUser);
     formData.append('message', message);
+    if (activeReplyId) {
+        formData.append('reply_to', activeReplyId);
+    }
 
     const response = await fetch('../api/messages.php', {
         method: 'POST',
@@ -658,6 +700,7 @@ async function sendMessage() {
 
     if (data.success) {
         input.value = '';
+        cancelReply();
         loadMessages();
         loadChats();
     } else {
@@ -986,8 +1029,11 @@ async function loadUserProfile() {
     const response = await fetch('../api/settings.php?action=get_profile');
     const data = await response.json();
 
-    if (data.success && data.user.profile_image) {
-        document.getElementById('userProfileImg').src = '../' + data.user.profile_image;
+    if (data.success && data.user) {
+        window.currentUserId = data.user.id;
+        if (data.user.profile_image) {
+            document.getElementById('userProfileImg').src = '../' + data.user.profile_image;
+        }
     }
 }
 
@@ -1737,4 +1783,271 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-console.log('✅ New features loaded: File Upload, Emoji Picker, Online Status, Dialog Boxes, Image Lightbox');
+
+// Message Actions Logic
+function renderReactions(reactions, msgId) {
+    if (!reactions || reactions.length === 0) return '';
+
+    // Group reactions by emoji
+    const groups = reactions.reduce((acc, r) => {
+        acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+        return acc;
+    }, {});
+
+    return Object.entries(groups).map(([emoji, count]) => {
+        const hasReacted = reactions.some(r => r.emoji === emoji && r.user_id == window.currentUserId);
+        return `<div class="reaction-badge ${hasReacted ? 'active' : ''}" onclick="event.stopPropagation(); react(${msgId}, '${emoji}')">
+                    <span>${emoji}</span>
+                    <span class="count" style="margin-left: 3px;">${count > 1 ? count : ''}</span>
+                </div>`;
+    }).join('');
+}
+
+function toggleMessageActions(event, msgId) {
+    event.stopPropagation();
+    event.preventDefault();
+
+    // Close any existing dropdowns
+    const existing = document.querySelector('.message-actions-dropdown');
+    if (existing) {
+        const wasSame = existing.dataset.msgId == msgId;
+        existing.remove();
+        if (wasSame) return;
+    }
+
+    const msgDiv = document.getElementById(`msg-${msgId}`);
+    if (!msgDiv) return;
+    const isSent = msgDiv.classList.contains('sent');
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'message-actions-dropdown';
+    dropdown.dataset.msgId = msgId;
+    dropdown.style.display = 'block'; // Force display
+
+    // Get message text safely
+    const textNode = msgDiv.querySelector('p');
+    const messageText = textNode ? textNode.innerText : '';
+
+    const reactionOptions = ['👍', '❤️', '😂', '😮', '😢'].map(emoji =>
+        `<span class="reaction-btn" data-emoji="${emoji}">${emoji}</span>`
+    ).join('');
+
+    // Determine sender name for reply
+    const isCurrentUser = msgDiv.classList.contains('sent');
+    const senderName = isCurrentUser ? 'You' : (document.getElementById('infoUserName')?.innerText || 'User');
+
+    dropdown.innerHTML = `
+        <div class="reaction-options">${reactionOptions}</div>
+        <div class="action-item action-reply">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
+            <span>Reply</span>
+        </div>
+        <div class="action-item action-copy">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span>Copy</span>
+        </div>
+        <div class="action-item action-forward">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 10 20 15 15 20"></polyline><path d="M4 4v7a4 4 0 0 0 4 4h12"></path></svg>
+            <span>Forward</span>
+        </div>
+        ${isSent ? `
+        <div class="action-item action-unsend danger">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            <span>Delete</span>
+        </div>` : ''}
+    `;
+
+    // Add Event Listeners instead of inline onclick for stability
+    dropdown.querySelectorAll('.reaction-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            react(msgId, btn.dataset.emoji);
+            dropdown.remove();
+        };
+    });
+
+    const replyBtn = dropdown.querySelector('.action-reply');
+    if (replyBtn) replyBtn.onclick = (e) => { e.stopPropagation(); initReply(msgId, senderName, messageText); dropdown.remove(); };
+
+    const copyBtn = dropdown.querySelector('.action-copy');
+    if (copyBtn) copyBtn.onclick = (e) => { e.stopPropagation(); copyToClipboard(messageText); dropdown.remove(); };
+
+    const forwardBtn = dropdown.querySelector('.action-forward');
+    if (forwardBtn) forwardBtn.onclick = (e) => { e.stopPropagation(); showForwardModal(msgId); dropdown.remove(); };
+
+    const unsendBtn = dropdown.querySelector('.action-unsend');
+    if (unsendBtn) unsendBtn.onclick = (e) => { e.stopPropagation(); unsend(msgId); dropdown.remove(); };
+
+    msgDiv.appendChild(dropdown);
+}
+
+function initReply(msgId, userName, text) {
+    activeReplyId = msgId;
+    const preview = document.getElementById('replyPreview');
+    const userSpan = document.getElementById('replyPreviewUser');
+    const textSpan = document.getElementById('replyPreviewText');
+
+    // If text is empty (e.g. image only), show a placeholder
+    if (!text) {
+        const msgDiv = document.getElementById(`msg-${msgId}`);
+        if (msgDiv.querySelector('img')) text = '📷 Photo';
+        else if (msgDiv.querySelector('video')) text = '🎥 Video';
+        else if (msgDiv.querySelector('.download-btn')) text = '📄 Document';
+        else text = 'Message';
+    }
+
+    userSpan.innerText = `Reply to ${userName}`;
+    textSpan.innerText = text;
+    preview.classList.add('active');
+    document.getElementById('messageInput').focus();
+}
+
+function cancelReply() {
+    activeReplyId = null;
+    document.getElementById('replyPreview').classList.remove('active');
+}
+
+// Close dropdowns on window click
+window.addEventListener('click', (e) => {
+    if (!e.target.closest('.message-actions-dropdown')) {
+        const dropdown = document.querySelector('.message-actions-dropdown');
+        if (dropdown) dropdown.remove();
+    }
+});
+
+function copyToClipboard(text) {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 20px; border-radius:30px; z-index:10000; font-size:14px; box-shadow: 0 0 10px rgba(0,243,255,0.2); border: 1px solid rgba(0,243,255,0.3);';
+        toast.innerText = 'Copied to clipboard';
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => toast.remove(), 500);
+        }, 2000);
+    });
+}
+
+async function unsend(msgId) {
+    if (!confirm('Are you sure you want to unsend this message?')) return;
+
+    const formData = new FormData();
+    formData.append('action', 'unsend');
+    formData.append('message_id', msgId);
+
+    const response = await fetch('../api/messages.php', {
+        method: 'POST',
+        body: formData
+    });
+
+    const data = await response.json();
+    if (data.success) {
+        // Optimistic UI update or just reload
+        loadMessages();
+    } else {
+        alert(data.message);
+    }
+}
+
+async function react(msgId, emoji) {
+    const formData = new FormData();
+    formData.append('action', 'react');
+    formData.append('message_id', msgId);
+    formData.append('emoji', emoji);
+
+    const response = await fetch('../api/messages.php', {
+        method: 'POST',
+        body: formData
+    });
+
+    const data = await response.json();
+    if (data.success) {
+        // Reload messages to show new reaction
+        loadMessages();
+    }
+}
+
+let selectedForwardMsgId = null;
+let selectedForwardUsers = new Set();
+
+async function showForwardModal(msgId) {
+    selectedForwardMsgId = msgId;
+    selectedForwardUsers.clear();
+
+    const modal = document.getElementById('modal');
+    const title = document.getElementById('modalTitle');
+    const body = document.getElementById('modalBody');
+
+    title.innerText = 'Forward Message';
+
+    // Fetch friends for forwarding
+    const response = await fetch('../api/users.php?action=get_friends');
+    let data = await response.json();
+
+    if (data.success) {
+        let userListHTML = '<div class="forward-user-list">';
+        if (data.friends.length === 0) {
+            userListHTML += '<p style="text-align:center; padding:20px; color:#888;">No friends found to forward to.</p>';
+        } else {
+            data.friends.forEach(friend => {
+                userListHTML += `
+                    <div class="forward-user-item" onclick="toggleForwardSelection(this, ${friend.id})">
+                        <img src="../${friend.profile_image || 'assets/images/default-avatar.png'}" class="profile-img-small">
+                        <div class="user-details">
+                            <span class="username">${friend.username}</span>
+                        </div>
+                        <div class="selection-indicator"></div>
+                    </div>
+                `;
+            });
+        }
+        userListHTML += '</div>';
+
+        body.innerHTML = `
+            ${userListHTML}
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary" id="confirmForwardBtn" disabled onclick="confirmForward()">Forward</button>
+            </div>
+        `;
+
+        modal.classList.remove('hidden');
+    }
+}
+
+function toggleForwardSelection(element, userId) {
+    if (selectedForwardUsers.has(userId)) {
+        selectedForwardUsers.delete(userId);
+        element.classList.remove('selected');
+    } else {
+        selectedForwardUsers.add(userId);
+        element.classList.add('selected');
+    }
+
+    const btn = document.getElementById('confirmForwardBtn');
+    if (btn) btn.disabled = selectedForwardUsers.size === 0;
+}
+
+async function confirmForward() {
+    if (selectedForwardUsers.size === 0) return;
+
+    const formData = new FormData();
+    formData.append('action', 'forward');
+    formData.append('message_id', selectedForwardMsgId);
+    formData.append('receiver_ids', Array.from(selectedForwardUsers).join(','));
+
+    const response = await fetch('../api/messages.php', {
+        method: 'POST',
+        body: formData
+    });
+
+    const data = await response.json();
+    if (data.success) {
+        closeModal();
+        alert(`Successfully forwarded!`);
+    } else {
+        alert(data.message);
+    }
+}

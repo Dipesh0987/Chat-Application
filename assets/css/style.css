@@ -364,6 +364,7 @@ body {
 .message {
     width: fit-content;
     max-width: 75%;
+    min-width: 100px;
     margin-bottom: 15px;
     padding: 12px 18px;
     border-radius: 4px;
@@ -372,7 +373,13 @@ body {
     word-wrap: break-word;
     font-size: 14px;
     line-height: 1.5;
+    overflow: visible;
+}
+
+.message-file {
     overflow: hidden;
+    border-radius: 8px;
+    margin-bottom: 8px;
 }
 
 .message.sent {
@@ -983,6 +990,230 @@ body {
     background: transparent;
     color: var(--text-secondary);
     border-color: var(--glass-border);
+}
+
+/* Message Actions */
+.message-actions-toggle {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 24px;
+    height: 24px;
+    padding: 2px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+    z-index: 10;
+    color: white;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message-actions-toggle:hover {
+    background: rgba(0, 243, 255, 0.3);
+    border-color: var(--neon-cyan);
+}
+
+.message:hover .message-actions-toggle {
+    display: flex;
+}
+
+.message-actions-dropdown {
+    position: absolute;
+    top: 35px;
+    right: 5px;
+    background: #1e1e1e;
+    border: 1px solid var(--neon-cyan);
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 10px rgba(0, 243, 255, 0.2);
+    z-index: 9999;
+    min-width: 160px;
+    overflow: hidden;
+    animation: dropdownFade 0.2s ease-out;
+}
+
+@keyframes dropdownFade {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.action-item {
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    color: #eee;
+}
+
+.action-item:hover {
+    background: rgba(0, 243, 255, 0.1);
+    color: var(--neon-cyan);
+}
+
+.action-item.danger {
+    color: #ff4444;
+}
+
+.reaction-options {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.reaction-btn {
+    font-size: 20px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    padding: 2px;
+}
+
+.reaction-btn:hover {
+    transform: scale(1.4);
+}
+
+/* Reactions Display */
+.message-reactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.reaction-badge {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 3px 8px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #aaa;
+}
+
+.reaction-badge:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.reaction-badge.active {
+    background: rgba(0, 243, 255, 0.1);
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+}
+
+/* Forward Modal Specifics */
+.forward-user-list {
+    max-height: 350px;
+    overflow-y: auto;
+    margin-top: 15px;
+    padding-right: 5px;
+}
+
+.forward-user-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    margin-bottom: 8px;
+}
+
+.forward-user-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.forward-user-item.selected {
+    background: rgba(0, 243, 255, 0.05);
+    border-color: var(--neon-cyan);
+}
+
+.forward-user-item .profile-img-small {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.forward-user-item .user-details {
+    flex: 1;
+}
+
+.forward-user-item .username {
+    display: block;
+    font-weight: 600;
+    color: #fff;
+}
+
+.forward-user-item .selection-indicator {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.forward-user-item.selected .selection-indicator {
+    background: var(--neon-cyan);
+    border-color: var(--neon-cyan);
+}
+
+.forward-user-item.selected .selection-indicator::after {
+    content: '✓';
+    color: var(--bg-dark);
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.modal-footer {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-secondary {
+    padding: 8px 20px;
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-primary {
+    padding: 8px 20px;
+    background: var(--neon-cyan);
+    border: none;
+    color: var(--bg-dark);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
 }
 
 .btn-secondary:hover {
@@ -2046,4 +2277,75 @@ input:focus+.slider {
     background: none;
     box-shadow: none;
     border-color: var(--glass-border);
+}
+
+/* Reply Preview (above input area) */
+.reply-preview {
+    display: none;
+    background: rgba(0, 0, 0, 0.4);
+    border-left: 4px solid var(--neon-cyan);
+    padding: 10px 15px;
+    margin: 10px 0;
+    border-radius: 4px;
+    position: relative;
+    font-size: 13px;
+}
+
+.reply-preview.active {
+    display: block;
+}
+
+.reply-preview-header {
+    color: var(--neon-cyan);
+    font-weight: bold;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.close-reply {
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 16px;
+}
+
+.close-reply:hover {
+    color: white;
+}
+
+.reply-preview-text {
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90%;
+}
+
+/* Replied Message Snippet (inside chat bubble) */
+.replied-message {
+    background: rgba(0, 0, 0, 0.3);
+    border-left: 3px solid var(--neon-cyan);
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.replied-message:hover {
+    background: rgba(0, 243, 255, 0.1);
+}
+
+.replied-message-user {
+    color: var(--neon-cyan);
+    font-weight: bold;
+    margin-bottom: 3px;
+}
+
+.replied-message-text {
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

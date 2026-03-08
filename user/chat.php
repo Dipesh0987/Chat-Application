@@ -72,6 +72,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['is_admin']) {
                 <div class="file-preview" id="filePreview"></div>
                 <button class="remove-file-btn" onclick="removeFile()">Remove</button>
             </div>
+
+            <!-- Reply Preview Container -->
+            <div class="reply-preview" id="replyPreview">
+                <div class="reply-preview-header">
+                    <span id="replyPreviewUser">Reply to user</span>
+                    <span class="close-reply" id="closeReplyBtn" onclick="cancelReply()">&times;</span>
+                </div>
+                <div class="reply-preview-text" id="replyPreviewText">Message...</div>
+            </div>
+
             <div class="message-input hidden" id="messageInputArea">
                 <div class="input-actions">
                     <button class="attachment-btn" id="attachmentBtn" title="Attach file">

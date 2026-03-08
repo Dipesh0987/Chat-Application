@@ -85,8 +85,13 @@ if ($action === 'upload_file') {
         $file_path = str_replace('../', '', $upload_path);
         $message_text = $caption ?: "[{$message_type}]";
 
-        $query = "INSERT INTO messages (sender_id, receiver_id, message, message_type, file_path, file_name, file_size, is_delivered) 
-                  VALUES (:sender_id, :receiver_id, :message, :message_type, :file_path, :file_name, :file_size, FALSE)";
+        $reply_to = $_POST['reply_to'] ?? null;
+        if ($reply_to === '') {
+            $reply_to = null;
+        }
+
+        $query = "INSERT INTO messages (sender_id, receiver_id, message, message_type, file_path, file_name, file_size, is_delivered, reply_to) 
+                  VALUES (:sender_id, :receiver_id, :message, :message_type, :file_path, :file_name, :file_size, FALSE, :reply_to)";
         $stmt = $db->prepare($query);
         $stmt->bindParam(':sender_id', $user_id);
         $stmt->bindParam(':receiver_id', $receiver_id);
@@ -95,6 +100,7 @@ if ($action === 'upload_file') {
         $stmt->bindParam(':file_path', $file_path);
         $stmt->bindParam(':file_name', $file['name']);
         $stmt->bindParam(':file_size', $file['size']);
+        $stmt->bindParam(':reply_to', $reply_to);
 
         if ($stmt->execute()) {
             $message_id = $db->lastInsertId();
